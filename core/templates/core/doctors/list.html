@@ -1,0 +1,50 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Doctors{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Doctors</h1>
+    <p>Browse our network of {{ doctors|length }} healthcare professionals.</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search by name..." value="{{ query }}" style="width:200px;min-width:unset;">
+      <select class="form-select" name="specialty" onchange="this.form.submit()" style="width:auto;min-width:140px;">
+        <option value="">All Specialties</option>
+        {% for s in specialties %}
+        <option value="{{ s.id }}" {% if selected_specialty == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline">Search</button>
+    </form>
+  </div>
+</div>
+
+<div class="doctor-grid">
+  {% for doctor in doctors %}
+  <div class="doctor-card">
+    <div class="doctor-card-avatar">{{ doctor.user.first_name|first }}{{ doctor.user.last_name|first }}</div>
+    <div class="doctor-card-name">Dr. {{ doctor.user.get_full_name }}</div>
+    <div class="doctor-card-specialty">
+      {% for s in doctor.specialties.all %}{{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    </div>
+    <div class="doctor-card-meta">
+      <div class="doctor-card-meta-item">🎓 {{ doctor.years_of_experience }} yrs exp.</div>
+      <div class="doctor-card-meta-item">💰 ${{ doctor.consultation_fee }}</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <a href="{% url 'book_appointment' %}?doctor={{ doctor.id }}" class="btn btn-sm btn-primary">Book</a>
+      <a href="{% url 'doctor_detail' doctor.id %}" class="btn btn-sm btn-outline">Profile</a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state" style="grid-column:1/-1;">
+    <div class="empty-state-icon">◉</div>
+    <h3>No doctors found</h3>
+    <p>{% if query %}No doctors match your search. Try different keywords.{% else %}No doctors are registered yet.{% endif %}</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

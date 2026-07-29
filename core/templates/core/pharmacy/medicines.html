@@ -1,0 +1,56 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Pharmacy{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Pharmacy</h1>
+    <p>Medicine catalog and order management.</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'create_order' %}" class="btn btn-accent">+ New Order</a>
+    <a href="{% url 'order_history' %}" class="btn btn-outline">My Orders</a>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;width:100%;">
+    <input class="form-input" type="text" name="q" placeholder="Search medicines..." value="{{ query }}" style="width:260px;min-width:unset;">
+    <select class="form-select" name="prescription" onchange="this.form.submit()" style="width:auto;min-width:140px;">
+      <option value="">All Types</option>
+      <option value="required" {% if rx_filter == 'required' %}selected{% endif %}>Prescription Required</option>
+      <option value="otc" {% if rx_filter == 'otc' %}selected{% endif %}>Over the Counter</option>
+    </select>
+    <button type="submit" class="btn btn-sm btn-outline">Search</button>
+  </form>
+</div>
+
+<div class="medicine-grid">
+  {% for medicine in medicines %}
+  <div class="medicine-card">
+    <div class="medicine-card-name">{{ medicine.name }}</div>
+    <div class="medicine-card-gen">{{ medicine.generic_name }}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+      <span class="badge badge-neutral">{{ medicine.dosage_form }}</span>
+      <span class="badge badge-neutral">{{ medicine.strength }}</span>
+      {% if medicine.requires_prescription %}
+      <span class="badge badge-warning">Rx Required</span>
+      {% else %}
+      <span class="badge badge-success">OTC</span>
+      {% endif %}
+    </div>
+    <div class="medicine-card-footer">
+      <div class="medicine-card-price">${{ medicine.price }}</div>
+      <div class="medicine-card-stock">Stock: {{ medicine.stock_quantity }}</div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state" style="grid-column:1/-1;">
+    <div class="empty-state-icon">⚕︎</div>
+    <h3>No medicines found</h3>
+    <p>{% if query %}No medicines match your search.{% else %}The pharmacy catalog is empty.{% endif %}</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

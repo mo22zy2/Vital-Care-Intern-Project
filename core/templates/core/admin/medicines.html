@@ -1,0 +1,74 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Medicine Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Medicine Management</h1>
+    <p>{{ page_obj.paginator.count }} total medicines</p>
+  </div>
+  <a href="{% url 'admin_medicine_create' %}" class="btn btn-primary">+ Add Medicine</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search by name..." value="{{ query }}" style="width:260px;">
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Generic Name</th>
+          <th>Dosage</th>
+          <th>Strength</th>
+          <th>Price</th>
+          <th>Stock</th>
+          <th>Rx Required</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in medicines %}
+        <tr class="{% if m.stock_quantity < 10 %}highlight{% endif %}">
+          <td><strong>{{ m.name }}</strong></td>
+          <td style="font-size:0.8125rem;color:var(--color-text-muted);">{{ m.generic_name|default:"—" }}</td>
+          <td>{{ m.dosage_form|default:"—" }}</td>
+          <td>{{ m.strength|default:"—" }}</td>
+          <td>${{ m.price }}</td>
+          <td>
+            <span {% if m.stock_quantity < 10 %}style="color:var(--color-danger);font-weight:600;"{% endif %}>
+              {{ m.stock_quantity }}
+            </span>
+          </td>
+          <td>{% if m.requires_prescription %}<span class="badge badge-warning">Required</span>{% else %}<span class="badge badge-success">OTC</span>{% endif %}</td>
+          <td>
+            <a href="{% url 'admin_medicine_edit' m.id %}" class="btn btn-sm btn-ghost">Edit</a>
+            <form method="POST" style="display:inline;" onsubmit="return confirm('Delete {{ m.name }}?');">
+              {% csrf_token %}
+              <input type="hidden" name="medicine_id" value="{{ m.id }}">
+              <input type="hidden" name="action" value="delete">
+              <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8">
+            <div class="empty-state" style="padding:32px;">
+              <h3>No medicines found</h3>
+              <p>{% if query %}Try a different search.{% else %}Add your first medicine to get started.{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "core/admin/_pagination.html" %}
+</div>
+{% endblock %}

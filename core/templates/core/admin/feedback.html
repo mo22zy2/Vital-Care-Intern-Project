@@ -1,0 +1,84 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Feedback Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Feedback Management</h1>
+    <p>{{ page_obj.paginator.count }} total entries</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search patient or comment..." value="{{ query }}" style="width:260px;">
+      <select class="form-select" name="rating">
+        <option value="">All Ratings</option>
+        <option value="5" {% if selected_rating == '5' %}selected{% endif %}>5 ★</option>
+        <option value="4" {% if selected_rating == '4' %}selected{% endif %}>4 ★</option>
+        <option value="3" {% if selected_rating == '3' %}selected{% endif %}>3 ★</option>
+        <option value="2" {% if selected_rating == '2' %}selected{% endif %}>2 ★</option>
+        <option value="1" {% if selected_rating == '1' %}selected{% endif %}>1 ★</option>
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Target</th>
+          <th>Rating</th>
+          <th>Comment</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fb in feedbacks %}
+        <tr>
+          <td>{{ fb.patient.get_full_name|default:fb.patient.email }}</td>
+          <td>
+            {% if fb.doctor %}
+            Dr. {{ fb.doctor.user.get_full_name }}
+            {% else %}
+            <span class="badge badge-neutral">{{ fb.get_target_type_display }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <span style="color:var(--color-warning);font-weight:600;">
+              {% for i in "12345"|make_list %}
+                {% if forloop.counter <= fb.rating %}★{% else %}☆{% endif %}
+              {% endfor %}
+            </span>
+          </td>
+          <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ fb.comment|default:"—" }}</td>
+          <td style="font-size:0.8125rem;color:var(--color-text-muted);">{{ fb.created_at|date:"M d, Y" }}</td>
+          <td>
+            <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this feedback?');">
+              {% csrf_token %}
+              <input type="hidden" name="feedback_id" value="{{ fb.id }}">
+              <input type="hidden" name="action" value="delete">
+              <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6">
+            <div class="empty-state" style="padding:32px;">
+              <h3>No feedback found</h3>
+              <p>Try different search criteria.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "core/admin/_pagination.html" %}
+</div>
+{% endblock %}

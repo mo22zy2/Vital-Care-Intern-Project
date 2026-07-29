@@ -1,0 +1,93 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Notifications</h1>
+    <p class="page-subtitle">Updates and alerts</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search notifications..." value="{{ query }}" style="width:200px;">
+      <select class="form-select" name="type">
+        <option value="">All Types</option>
+        <option value="APPOINTMENT_REMINDER" {% if selected_type == 'APPOINTMENT_REMINDER' %}selected{% endif %}>Appointment</option>
+        <option value="TEST_RESULT" {% if selected_type == 'TEST_RESULT' %}selected{% endif %}>Test Result</option>
+        <option value="MEDICATION_REFILL" {% if selected_type == 'MEDICATION_REFILL' %}selected{% endif %}>Medication</option>
+        <option value="BILLING" {% if selected_type == 'BILLING' %}selected{% endif %}>Billing</option>
+        <option value="GENERAL" {% if selected_type == 'GENERAL' %}selected{% endif %}>General</option>
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+    <form method="POST" style="display:inline;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="mark_all_read">
+      <button type="submit" class="btn btn-sm btn-ghost">Mark All Read</button>
+    </form>
+  </div>
+  <div class="card-body" style="padding:0;">
+    {% if notifications %}
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Title</th>
+          <th>Message</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for n in notifications %}
+        <tr{% if not n.is_read %} class="highlight"{% endif %}>
+          <td><span class="badge badge-info">{{ n.notification_type }}</span></td>
+          <td>{{ n.title }}</td>
+          <td>{{ n.message|truncatewords:12 }}</td>
+          <td>{{ n.created_at|date:"M d, Y" }}</td>
+          <td>{% if n.is_read %}Read{% else %}<strong>New</strong>{% endif %}</td>
+          <td>
+            {% if not n.is_read %}
+            <form method="POST" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="notification_id" value="{{ n.id }}">
+              <input type="hidden" name="action" value="mark_read">
+              <button type="submit" class="btn btn-sm btn-ghost">Mark Read</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="padding:32px;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">🔔</div>
+      <h3>{% if query or selected_type %}No notifications match your search{% else %}No Notifications{% endif %}</h3>
+      <p style="color:var(--text-muted);">{% if query or selected_type %}Try different search terms.{% else %}You're all caught up!{% endif %}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if health_tips %}
+<div class="page-header" style="margin-top:2rem;">
+  <h1 class="page-title">Health Tips</h1>
+</div>
+<div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">
+  {% for tip in health_tips %}
+  <div class="stat-card info">
+    <div class="stat-card-body">
+      <div class="stat-card-value" style="font-size:1rem;">{{ tip.title }}</div>
+      <p style="margin-top:0.5rem;font-size:0.875rem;">{{ tip.content }}</p>
+      {% if tip.category %}<span class="badge badge-secondary">{{ tip.category }}</span>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

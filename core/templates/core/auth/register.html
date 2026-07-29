@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — VitalCare Hospital</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+  <style>
+    .auth-card { max-width: 680px; width:100%; }
+    .form-section { margin-bottom: 20px; }
+    .form-section-title {
+      font-family: 'Inter Tight', sans-serif;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+    .field-error {
+      font-size: 0.75rem;
+      color: var(--color-danger);
+      margin-top: 4px;
+    }
+    .is-invalid { border-color: var(--color-danger) !important; }
+  </style>
+</head>
+<body class="auth-page">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="auth-brand-icon">V</div>
+        <div>
+          <div style="font-family:'Inter Tight',sans-serif;font-weight:700;font-size:1.125rem;letter-spacing:-0.02em;color:#1A2A36;">VitalCare</div>
+          <div style="font-size:0.7rem;color:#94A3A8;letter-spacing:0.05em;text-transform:uppercase;">Hospital Management</div>
+        </div>
+      </div>
+      <h2 class="auth-title">Create account</h2>
+      <p class="auth-subtitle">Join the VitalCare hospital network. Fill in your details below.</p>
+
+      <form method="POST" action="{% url 'account_register' %}">
+        {% csrf_token %}
+
+        <div class="form-section">
+          <div class="form-section-title">Account</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="email">Email <span style="color:var(--color-danger);">*</span></label>
+              <input class="form-input{% if field_errors.email %} is-invalid{% endif %}" type="email" id="email" name="email" placeholder="doctor@hospital.com" value="{{ data.email }}" required>
+              {% if field_errors.email %}<div class="field-error">{{ field_errors.email }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="password">Password <span style="color:var(--color-danger);">*</span></label>
+              <input class="form-input{% if field_errors.password %} is-invalid{% endif %}" type="password" id="password" name="password" placeholder="Min 8 characters" required minlength="8">
+              {% if field_errors.password %}<div class="field-error">{{ field_errors.password }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Personal Information</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="first_name">First Name <span style="color:var(--color-danger);">*</span></label>
+              <input class="form-input{% if field_errors.first_name %} is-invalid{% endif %}" type="text" id="first_name" name="first_name" placeholder="Jane" value="{{ data.first_name }}" required>
+              {% if field_errors.first_name %}<div class="field-error">{{ field_errors.first_name }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="last_name">Last Name <span style="color:var(--color-danger);">*</span></label>
+              <input class="form-input{% if field_errors.last_name %} is-invalid{% endif %}" type="text" id="last_name" name="last_name" placeholder="Smith" value="{{ data.last_name }}" required>
+              {% if field_errors.last_name %}<div class="field-error">{{ field_errors.last_name }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="phone">Phone <span style="color:var(--color-danger);">*</span></label>
+              <input class="form-input{% if field_errors.phone %} is-invalid{% endif %}" type="tel" id="phone" name="phone" placeholder="+1 234 567 890" value="{{ data.phone }}" required>
+              {% if field_errors.phone %}<div class="field-error">{{ field_errors.phone }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="address">Address</label>
+              <input class="form-input" type="text" id="address" name="address" placeholder="123 Main St, City" value="{{ data.address }}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="gender">Gender</label>
+              <select class="form-select" id="gender" name="gender">
+                <option value="">Select…</option>
+                {% for key, label in gender_choices %}
+                <option value="{{ key }}" {% if data.gender == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="date_of_birth">Date of Birth</label>
+              <input class="form-input" type="date" id="date_of_birth" name="date_of_birth" value="{{ data.date_of_birth }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Emergency Contact</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="ec_name">Full Name</label>
+              <input class="form-input" type="text" id="ec_name" name="ec_name" placeholder="Contact name" value="{{ data.ec_name }}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ec_relationship">Relationship</label>
+              <select class="form-select" id="ec_relationship" name="ec_relationship">
+                <option value="">Select…</option>
+                {% for key, label in ec_relationship_choices %}
+                <option value="{{ key }}" {% if data.ec_relationship == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ec_phone">Phone <span style="color:var(--color-text-muted);font-size:0.75rem;">(required with name)</span></label>
+              <input class="form-input" type="tel" id="ec_phone" name="ec_phone" placeholder="Emergency phone" value="{{ data.ec_phone }}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ec_alt_phone">Alternate Phone</label>
+              <input class="form-input" type="tel" id="ec_alt_phone" name="ec_alt_phone" placeholder="Alternate phone" value="{{ data.ec_alt_phone }}">
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label class="form-label" for="ec_email">Email</label>
+              <input class="form-input" type="email" id="ec_email" name="ec_email" placeholder="contact@email.com" value="{{ data.ec_email }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions" style="flex-direction:column;gap:12px;">
+          <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">Create Account</button>
+        </div>
+      </form>
+      <div class="auth-link">
+        Already have an account? <a href="{% url 'account_login' %}">Sign in</a>
+      </div>
+    </div>
+  </div>
+  <script src="{% static 'core/js/main.js' %}"></script>
+</body>
+</html>

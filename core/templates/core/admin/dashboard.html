@@ -1,0 +1,126 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Admin Dashboard</h1>
+    <p>Welcome back, {{ user.first_name|default:user.email }}.</p>
+  </div>
+</div>
+
+{% if pending_orders > 0 or pending_feedback > 0 %}
+<div class="admin-alert">
+  <span>⚠️</span>
+  <span>
+    {% if pending_orders > 0 %}{{ pending_orders }} pending order{% if pending_orders != 1 %}s{% endif %}{% endif %}
+    {% if pending_orders > 0 and pending_feedback > 0 %} &middot; {% endif %}
+    {% if pending_feedback > 0 %}{{ pending_feedback }} unread feedback{% endif %}
+  </span>
+  <a href="{% url 'admin_pharmacy_orders' %}">Review &rarr;</a>
+</div>
+{% endif %}
+
+<div class="dash-grid">
+  <div class="dash-card" onclick="window.location='{% url 'admin_users' %}'" style="--card-hue:var(--color-accent)">
+    <div class="dash-card-icon bg-accent">👤</div>
+    <div class="dash-card-body">
+      <div class="dash-card-title">Users</div>
+      <div class="dash-card-count">{{ total_users }}</div>
+    </div>
+  </div>
+  <div class="dash-card" onclick="window.location='{% url 'admin_reports' %}'" style="--card-hue:var(--color-info)">
+    <div class="dash-card-icon bg-info">📊</div>
+    <div class="dash-card-body">
+      <div class="dash-card-title">Reports</div>
+      <div class="dash-card-count dash-card-arrow">&rarr;</div>
+    </div>
+  </div>
+</div>
+
+<div class="dash-bar">
+  <span class="dash-bar-label">Quick Create</span>
+  <a href="{% url 'admin_user_create' %}" class="dash-bar-btn" style="--bar-color:var(--color-accent)">+ User</a>
+  <a href="{% url 'admin_appointment_create' %}" class="dash-bar-btn" style="--bar-color:var(--color-info)">+ Appointment</a>
+  <a href="{% url 'admin_doctor_create' %}" class="dash-bar-btn" style="--bar-color:var(--color-success)">+ Doctor</a>
+  <a href="{% url 'admin_medicine_create' %}" class="dash-bar-btn" style="--bar-color:var(--color-warning)">+ Medicine</a>
+  <a href="{% url 'admin_labtest_create' %}" class="dash-bar-btn" style="--bar-color:var(--color-primary)">+ Lab Test</a>
+</div>
+
+<div class="section-grid section-grid-2">
+  <div class="card">
+    <div class="card-header">
+      <h3>Recent Users</h3>
+      <a href="{% url 'admin_users' %}" class="btn btn-outline btn-sm">All &rarr;</a>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if recent_users %}
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in recent_users %}
+          <tr onclick="window.location='{% url 'admin_users' %}'">
+            <td><strong>{{ u.get_full_name|default:"&mdash;" }}</strong></td>
+            <td class="text-muted">{{ u.email }}</td>
+            <td><span class="badge badge-neutral">{{ u.get_role_display }}</span></td>
+            <td>{% if u.is_active %}<span class="status-yes">Active</span>{% else %}<span class="status-no">Inactive</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state" style="padding:24px;"><p>No users yet.</p></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <h3>Recent Appointments</h3>
+      <a href="{% url 'admin_appointments' %}" class="btn btn-outline btn-sm">All &rarr;</a>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if recent_appointments %}
+      <table>
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for apt in recent_appointments %}
+          <tr onclick="window.location='{% url 'admin_appointments' %}'">
+            <td><strong>{{ apt.patient.get_full_name|default:apt.patient.email }}</strong></td>
+            <td class="text-muted">Dr. {{ apt.doctor.user.get_full_name }}</td>
+            <td class="text-muted">{{ apt.appointment_date }}</td>
+            <td>
+              <span class="badge
+                {% if apt.status == 'CONFIRMED' %}badge-success
+                {% elif apt.status == 'PENDING' %}badge-warning
+                {% elif apt.status == 'COMPLETED' %}badge-info
+                {% elif apt.status == 'CANCELLED' %}badge-danger
+                {% else %}badge-neutral{% endif %}">
+                {{ apt.get_status_display }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state" style="padding:24px;"><p>No appointments yet.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

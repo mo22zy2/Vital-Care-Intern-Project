@@ -1,0 +1,108 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>User Management</h1>
+    <p>{{ users.paginator.count }} total users</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search name, email, phone..." value="{{ query }}" style="width:260px;">
+      <select class="form-select" name="role">
+        <option value="">All Roles</option>
+        {% for key, label in roles %}
+        <option value="{{ key }}" {% if selected_role == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Role</th>
+          <th>Active</th>
+          <th>Joined</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr class="{% if not u.is_active %}highlight{% endif %}">
+          <td><strong>{{ u.get_full_name|default:"—" }}</strong></td>
+          <td>{{ u.email }}</td>
+          <td>{{ u.phone|default:"—" }}</td>
+          <td>
+            <form method="POST" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="user_id" value="{{ u.id }}">
+              <input type="hidden" name="action" value="change_role">
+              <select class="form-select" name="role" onchange="this.form.submit()" style="width:auto;min-width:100px;padding:2px 8px;font-size:0.8125rem;">
+                {% for key, label in roles %}
+                <option value="{{ key }}" {% if u.role == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </td>
+          <td>{% if u.is_active %}<span style="color:var(--color-success);font-weight:600;">Active</span>{% else %}<span style="color:var(--color-danger);font-weight:600;">Inactive</span>{% endif %}</td>
+          <td style="font-size:0.8125rem;color:var(--color-text-muted);">{{ u.date_joined|date:"M d, Y" }}</td>
+          <td>
+            <form method="POST" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="user_id" value="{{ u.id }}">
+              <input type="hidden" name="action" value="toggle_active">
+              <button type="submit" class="btn btn-sm {% if u.is_active %}btn-danger{% else %}btn-success{% endif %}">
+                {% if u.is_active %}Deactivate{% else %}Activate{% endif %}
+              </button>
+            </form>
+            {% if u.id != user.id %}
+            <form method="POST" style="display:inline;" onsubmit="return confirm('Delete user {{ u.email }} permanently?');">
+              {% csrf_token %}
+              <input type="hidden" name="user_id" value="{{ u.id }}">
+              <input type="hidden" name="action" value="delete_user">
+              <button type="submit" class="btn btn-sm btn-danger" title="Delete user">✕</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state" style="padding:32px;">
+              <h3>No users found</h3>
+              <p>Try different search criteria.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if users.paginator.num_pages > 1 %}
+  <div class="pagination">
+    <span class="pagination-info">Page {{ users.number }} of {{ users.paginator.num_pages }}</span>
+    <div class="pagination-links">
+      {% if users.has_previous %}
+      <a href="?{% if query %}q={{ query }}&{% endif %}{% if selected_role %}role={{ selected_role }}&{% endif %}page=1" class="btn btn-sm btn-outline">&laquo;</a>
+      <a href="?{% if query %}q={{ query }}&{% endif %}{% if selected_role %}role={{ selected_role }}&{% endif %}page={{ users.previous_page_number }}" class="btn btn-sm btn-outline">&lsaquo;</a>
+      {% endif %}
+      <span class="pagination-current">{{ users.number }}</span>
+      {% if users.has_next %}
+      <a href="?{% if query %}q={{ query }}&{% endif %}{% if selected_role %}role={{ selected_role }}&{% endif %}page={{ users.next_page_number }}" class="btn btn-sm btn-outline">&rsaquo;</a>
+      <a href="?{% if query %}q={{ query }}&{% endif %}{% if selected_role %}role={{ selected_role }}&{% endif %}page={{ users.paginator.num_pages }}" class="btn btn-sm btn-outline">&raquo;</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Billing{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Billing</h1>
+    <p>Invoices, payments, and revenue tracking.</p>
+  </div>
+  <a href="#" class="btn btn-primary">+ New Invoice</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <select class="form-select" name="status" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        <option value="UNPAID" {% if selected_status == 'UNPAID' %}selected{% endif %}>Unpaid</option>
+        <option value="PARTIALLY_PAID" {% if selected_status == 'PARTIALLY_PAID' %}selected{% endif %}>Partially Paid</option>
+        <option value="PAID" {% if selected_status == 'PAID' %}selected{% endif %}>Paid</option>
+        <option value="OVERDUE" {% if selected_status == 'OVERDUE' %}selected{% endif %}>Overdue</option>
+      </select>
+      <input class="form-input" type="text" name="q" placeholder="Search invoice # or patient..." value="{{ query }}" style="width:220px;min-width:unset;">
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Patient</th>
+          <th>Issue Date</th>
+          <th>Due Date</th>
+          <th style="text-align:right;">Amount</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr>
+          <td><span class="mono">{{ inv.invoice_number }}</span></td>
+          <td><strong>{{ inv.patient.get_full_name }}</strong></td>
+          <td>{{ inv.issue_date|date:"M d, Y" }}</td>
+          <td>{{ inv.due_date|date:"M d, Y" }}</td>
+          <td style="text-align:right;font-family:var(--font-mono);font-weight:600;">${{ inv.total_amount }}</td>
+          <td>
+            <span class="badge
+              {% if inv.status == 'PAID' %}badge-success
+              {% elif inv.status == 'UNPAID' %}badge-warning
+              {% elif inv.status == 'OVERDUE' %}badge-danger
+              {% elif inv.status == 'PARTIALLY_PAID' %}badge-info
+              {% else %}badge-neutral{% endif %}">
+              {{ inv.get_status_display }}
+            </span>
+          </td>
+          <td><a href="#" class="btn btn-sm btn-ghost">→</a></td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state" style="padding:32px;">
+              <div class="empty-state-icon">▣</div>
+              <h3>No invoices</h3>
+              <p>{% if selected_status or query %}No invoices match your filter.{% else %}No invoices have been generated yet.{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

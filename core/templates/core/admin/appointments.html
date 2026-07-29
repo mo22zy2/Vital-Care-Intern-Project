@@ -1,0 +1,85 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Appointment Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Appointment Management</h1>
+    <p>{{ page_obj.paginator.count }} total appointments</p>
+  </div>
+  <a href="{% url 'admin_appointment_create' %}" class="btn btn-primary">+ Add Appointment</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search patient or doctor..." value="{{ query }}" style="width:260px;">
+      <select class="form-select" name="status">
+        <option value="">All Statuses</option>
+        {% for key, label in statuses %}
+        <option value="{{ key }}" {% if selected_status == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Doctor</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for apt in appointments %}
+        <tr>
+          <td>{{ apt.patient.get_full_name|default:apt.patient.email }}</td>
+          <td>Dr. {{ apt.doctor.user.get_full_name }}</td>
+          <td>{{ apt.appointment_date|date:"M d, Y" }}</td>
+          <td>{{ apt.appointment_time|time:"H:i" }}</td>
+          <td style="font-size:0.8125rem;color:var(--color-text-muted);">{{ apt.get_reason_display }}</td>
+          <td>
+            <form method="POST" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="appointment_id" value="{{ apt.id }}">
+              <input type="hidden" name="action" value="change_status">
+              <select class="form-select" name="status" onchange="this.form.submit()" style="width:auto;min-width:100px;padding:2px 8px;font-size:0.8125rem;">
+                {% for key, label in statuses %}
+                <option value="{{ key }}" {% if apt.status == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </td>
+          <td>
+            <a href="{% url 'admin_appointment_edit' apt.id %}" class="btn btn-sm btn-ghost">Edit</a>
+            <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this appointment?');">
+              {% csrf_token %}
+              <input type="hidden" name="appointment_id" value="{{ apt.id }}">
+              <input type="hidden" name="action" value="delete">
+              <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state" style="padding:32px;">
+              <h3>No appointments found</h3>
+              <p>Try different search criteria.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "core/admin/_pagination.html" %}
+</div>
+{% endblock %}

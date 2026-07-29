@@ -1,0 +1,31 @@
+{% extends "core/base.html" %}{% load static %}{% block title %}Health Tips{% endblock %}
+{% block content %}
+<div class="page-header"><div class="page-header-content"><h1>Health Tips</h1><p>Manage health tips shown on the notifications page.</p></div></div>
+<div class="section-grid section-grid-2">
+  <div class="card">
+    <div class="card-header"><h3>Tips</h3></div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Title</th><th>Category</th><th>Active</th><th></th></tr></thead>
+        <tbody>{% for tip in tips %}<tr><td><strong>{{ tip.title }}</strong></td><td><span class="badge badge-neutral">{{ tip.category }}</span></td><td>{% if tip.is_active %}<span style="color:var(--color-success);">Active</span>{% else %}<span style="color:var(--color-danger);">Inactive</span>{% endif %}</td>
+        <td><form method="POST" style="display:inline;">{% csrf_token %}<input type="hidden" name="tip_id" value="{{ tip.id }}">
+          <button type="submit" name="action" value="toggle" class="btn btn-sm btn-outline">Toggle</button>
+          <button type="submit" name="action" value="delete" class="btn btn-sm btn-danger" onclick="return confirm('Delete this tip?');">✕</button>
+        </form></td></tr>{% empty %}<tr><td colspan="4"><div class="empty-state" style="padding:24px;"><p>No tips created.</p></div></td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Add Tip</h3></div>
+    <div class="card-body">
+      <form method="POST">{% csrf_token %}<input type="hidden" name="action" value="create">
+        <div class="form-group"><label class="form-label">Title</label><input class="form-input" type="text" name="title" required></div>
+        <div class="form-group"><label class="form-label">Content</label><textarea class="form-input" name="content" rows="3" required></textarea></div>
+        <div class="form-group"><label class="form-label">Category</label><input class="form-input" type="text" name="category" value="general"></div>
+        <div class="form-group"><label><input type="checkbox" name="is_active" checked> Active</label></div>
+        <button type="submit" class="btn btn-primary">Add Tip</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

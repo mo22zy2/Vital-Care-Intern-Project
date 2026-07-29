@@ -1,0 +1,16 @@
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="pagination">
+  <span class="pagination-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} total)</span>
+  <div class="pagination-links">
+    {% if page_obj.has_previous %}
+    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" class="btn btn-sm btn-outline">&laquo;</a>
+    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-outline">&lsaquo;</a>
+    {% endif %}
+    <span class="pagination-current">{{ page_obj.number }}</span>
+    {% if page_obj.has_next %}
+    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" class="btn btn-sm btn-outline">&rsaquo;</a>
+    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}" class="btn btn-sm btn-outline">&raquo;</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

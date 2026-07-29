@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}VitalCare{% endblock %} — VitalCare Hospital</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">V</div>
+        <div>
+          <div class="sidebar-brand-text">VitalCare</div>
+          <div class="sidebar-brand-sub">Hospital Management</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{% url 'dashboard' %}" class="sidebar-nav-item {% if active_tab == 'dashboard' %}active{% endif %}">
+          <span class="sidebar-nav-icon">◇</span>
+          Dashboard
+        </a>
+        <a href="{% url 'doctor_list' %}" class="sidebar-nav-item {% if active_tab == 'doctors' %}active{% endif %}">
+          <span class="sidebar-nav-icon">◉</span>
+          Doctors
+        </a>
+        <a href="{% url 'appointment_list' %}" class="sidebar-nav-item {% if active_tab == 'appointments' %}active{% endif %}">
+          <span class="sidebar-nav-icon">◷</span>
+          Appointments
+        </a>
+        <a href="{% url 'medicine_list' %}" class="sidebar-nav-item {% if active_tab == 'pharmacy' %}active{% endif %}">
+          <span class="sidebar-nav-icon">⚕︎</span>
+          Pharmacy
+        </a>
+        <a href="{% url 'invoice_list' %}" class="sidebar-nav-item {% if active_tab == 'billing' %}active{% endif %}">
+          <span class="sidebar-nav-icon">▣</span>
+          Billing
+        </a>
+        <a href="{% url 'lab_test_list' %}" class="sidebar-nav-item {% if active_tab == 'laboratory' %}active{% endif %}">
+          <span class="sidebar-nav-icon">◉</span>
+          Lab Tests
+        </a>
+        <a href="{% url 'medical_record_list' %}" class="sidebar-nav-item {% if active_tab == 'medical_records' %}active{% endif %}">
+          <span class="sidebar-nav-icon">📋</span>
+          Medical Records
+        </a>
+        <a href="{% url 'prescription_list' %}" class="sidebar-nav-item {% if active_tab == 'prescriptions' %}active{% endif %}">
+          <span class="sidebar-nav-icon">💊</span>
+          Prescriptions
+        </a>
+        <a href="{% url 'notification_list' %}" class="sidebar-nav-item {% if active_tab == 'notifications' %}active{% endif %}">
+          <span class="sidebar-nav-icon">🔔</span>
+          Notifications
+        </a>
+        <a href="{% url 'patient_timeline' %}" class="sidebar-nav-item {% if active_tab == 'timeline' %}active{% endif %}">
+          <span class="sidebar-nav-icon">📋</span>
+          Timeline
+        </a>
+        <a href="{% url 'submit_feedback' %}" class="sidebar-nav-item {% if active_tab == 'feedback' %}active{% endif %}">
+          <span class="sidebar-nav-icon">💬</span>
+          Feedback
+        </a>
+        {% if user.role == 'DOCTOR' %}
+        <div class="sidebar-nav-divider">Doctor Panel</div>
+        <a href="{% url 'doctor_dashboard' %}" class="sidebar-nav-item {% if active_tab == 'doctor_dashboard' %}active{% endif %}">
+          <span class="sidebar-nav-icon">◇</span> Dashboard
+        </a>
+        <a href="{% url 'doctor_appointments' %}" class="sidebar-nav-item {% if active_tab == 'doctor_appointments' %}active{% endif %}">
+          <span class="sidebar-nav-icon">📅</span> Appointments
+        </a>
+        <a href="{% url 'doctor_write_prescription' %}" class="sidebar-nav-item {% if active_tab == 'doctor_prescriptions' %}active{% endif %}">
+          <span class="sidebar-nav-icon">💊</span> Write Prescription
+        </a>
+        <a href="{% url 'doctor_availability' %}" class="sidebar-nav-item {% if active_tab == 'doctor_availability' %}active{% endif %}">
+          <span class="sidebar-nav-icon">⏰</span> Working Hours
+        </a>
+        {% endif %}
+        {% if user.role == 'PHARMACIST' %}
+        <div class="sidebar-nav-divider">Pharmacy Panel</div>
+        <a href="{% url 'pharmacist_dashboard' %}" class="sidebar-nav-item {% if active_tab == 'pharmacist_dashboard' %}active{% endif %}">
+          <span class="sidebar-nav-icon">⚕︎</span> Dashboard
+        </a>
+        {% endif %}
+        {% if user.role == 'LAB_TECH' %}
+        <div class="sidebar-nav-divider">Lab Panel</div>
+        <a href="{% url 'labtech_dashboard' %}" class="sidebar-nav-item {% if active_tab == 'labtech_dashboard' %}active{% endif %}">
+          <span class="sidebar-nav-icon">◉</span> Dashboard
+        </a>
+        {% endif %}
+        {% if user.role == 'ADMIN' or user.role == 'STAFF' %}
+        <div class="sidebar-nav-divider">Administration</div>
+        <a href="{% url 'admin_dashboard' %}" class="sidebar-nav-item {% if active_tab == 'admin_dashboard' %}active{% endif %}">
+          <span class="sidebar-nav-icon">◇</span>
+          Dashboard
+        </a>
+        <a href="{% url 'admin_users' %}" class="sidebar-nav-item {% if active_tab == 'admin_users' %}active{% endif %}">
+          <span class="sidebar-nav-icon">👤</span>
+          Users
+        </a>
+        <a href="{% url 'admin_appointments' %}" class="sidebar-nav-item {% if active_tab == 'admin_appointments' %}active{% endif %}">
+          <span class="sidebar-nav-icon">📅</span>
+          Appointments
+        </a>
+        <a href="{% url 'admin_doctors' %}" class="sidebar-nav-item {% if active_tab == 'admin_doctors' %}active{% endif %}">
+          <span class="sidebar-nav-icon">◉</span>
+          Doctors
+        </a>
+        <a href="{% url 'admin_medicines' %}" class="sidebar-nav-item {% if active_tab == 'admin_medicines' %}active{% endif %}">
+          <span class="sidebar-nav-icon">💊</span>
+          Medicines
+        </a>
+        <a href="{% url 'admin_invoices' %}" class="sidebar-nav-item {% if active_tab == 'admin_invoices' %}active{% endif %}">
+          <span class="sidebar-nav-icon">▣</span>
+          Invoices
+        </a>
+        <a href="{% url 'admin_labtests' %}" class="sidebar-nav-item {% if active_tab == 'admin_labtests' %}active{% endif %}">
+          <span class="sidebar-nav-icon">◉</span>
+          Lab Tests
+        </a>
+        <a href="{% url 'admin_pharmacy_orders' %}" class="sidebar-nav-item {% if active_tab == 'admin_pharmacy_orders' %}active{% endif %}">
+          <span class="sidebar-nav-icon">⚕︎</span>
+          Pharmacy Orders
+        </a>
+        <a href="{% url 'admin_feedback' %}" class="sidebar-nav-item {% if active_tab == 'admin_feedback' %}active{% endif %}">
+          <span class="sidebar-nav-icon">💬</span>
+          Feedback
+        </a>
+        <a href="{% url 'admin_lab_bookings' %}" class="sidebar-nav-item {% if active_tab == 'admin_lab_bookings' %}active{% endif %}">
+          <span class="sidebar-nav-icon">◉</span>
+          Lab Bookings
+        </a>
+        <a href="{% url 'admin_prescriptions' %}" class="sidebar-nav-item {% if active_tab == 'admin_prescriptions' %}active{% endif %}">
+          <span class="sidebar-nav-icon">💊</span>
+          Prescriptions
+        </a>
+        <a href="{% url 'admin_medical_records' %}" class="sidebar-nav-item {% if active_tab == 'admin_medical_records' %}active{% endif %}">
+          <span class="sidebar-nav-icon">📋</span>
+          Medical Records
+        </a>
+        <a href="{% url 'admin_notifications' %}" class="sidebar-nav-item {% if active_tab == 'admin_notifications' %}active{% endif %}">
+          <span class="sidebar-nav-icon">🔔</span>
+          Notifications
+        </a>
+        <a href="{% url 'admin_health_tips' %}" class="sidebar-nav-item {% if active_tab == 'admin_health_tips' %}active{% endif %}">
+          <span class="sidebar-nav-icon">💡</span>
+          Health Tips
+        </a>
+        <a href="{% url 'admin_insurance' %}" class="sidebar-nav-item {% if active_tab == 'admin_insurance' %}active{% endif %}">
+          <span class="sidebar-nav-icon">🏥</span>
+          Insurance
+        </a>
+        <a href="{% url 'admin_reports' %}" class="sidebar-nav-item {% if active_tab == 'admin_reports' %}active{% endif %}">
+          <span class="sidebar-nav-icon">📊</span>
+          Reports
+        </a>
+        {% endif %}
+      </nav>
+      <div class="sidebar-footer">
+        <a href="{% url 'profile' %}" class="sidebar-user" style="text-decoration:none;color:inherit;">
+          <div class="sidebar-user-avatar">{{ user.first_name|first }}{{ user.last_name|first }}</div>
+          <div>
+            <div style="font-size:0.8125rem;font-weight:600;">{{ user.get_full_name|default:user.email }}</div>
+            <div style="font-size:0.75rem;opacity:0.6;">{{ user.get_role_display }}</div>
+          </div>
+        </a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle sidebar">☰</button>
+        <div class="topbar-left">
+          <div class="topbar-search">
+            <span>🔍</span>
+            <input type="text" placeholder="Search patients, doctors, invoices..." id="globalSearch">
+          </div>
+        </div>
+        <div class="topbar-right">
+          <a href="{% url 'notification_list' %}" class="topbar-btn" title="Notifications">
+            🔔
+            <span class="notification-dot"></span>
+          </a>
+          <a href="{% url 'profile' %}" class="topbar-btn" title="Profile">👤</a>
+          <a href="{% url 'account_logout' %}" class="topbar-btn" title="Logout">↩</a>
+        </div>
+      </header>
+
+      <div class="page">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <script src="{% static 'core/js/main.js' %}"></script>
+</body>
+</html>

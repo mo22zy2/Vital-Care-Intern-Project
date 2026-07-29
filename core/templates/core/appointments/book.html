@@ -1,0 +1,90 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Book Appointment{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Book Appointment</h1>
+    <p>Schedule a new appointment with a doctor.</p>
+  </div>
+  <a href="{% url 'appointment_list' %}" class="btn btn-outline">← My Appointments</a>
+</div>
+
+<div class="card" style="max-width:640px;">
+  <div class="card-body">
+    {% if error %}
+    <div style="background:rgba(217,68,59,0.08);color:var(--color-danger);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:20px;font-size:0.875rem;">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label class="form-label" for="specialty_filter">Specialty</label>
+        <select class="form-select" id="specialty_filter" onchange="filterDoctors()">
+          <option value="">All Specialties</option>
+          {% for s in specialties %}
+          <option value="{{ s.id }}">{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="doctor_id">Doctor <span style="color:var(--color-danger);">*</span></label>
+        <select class="form-select" id="doctor_id" name="doctor_id" required>
+          <option value="">— Select Doctor —</option>
+          {% for d in doctors %}
+          <option value="{{ d.id }}" data-specialties="{% for s in d.specialties.all %}{{ s.id }}{% if not forloop.last %},{% endif %}{% endfor %}" {% if preselected_doctor == d.id|stringformat:"s" %}selected{% endif %}>
+            Dr. {{ d.user.get_full_name }} — {{ d.specialties.all|join:", " }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="appointment_date">Date <span style="color:var(--color-danger);">*</span></label>
+        <input class="form-input" type="date" id="appointment_date" name="appointment_date" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="appointment_time">Time <span style="color:var(--color-danger);">*</span></label>
+        <input class="form-input" type="time" id="appointment_time" name="appointment_time" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="reason">Reason</label>
+        <select class="form-select" id="reason" name="reason">
+          {% for key, label in reasons %}
+          <option value="{{ key }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="notes">Notes</label>
+        <textarea class="form-input" id="notes" name="notes" rows="3"></textarea>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:24px;">
+        <button type="submit" class="btn btn-primary">Book Appointment</button>
+        <a href="{% url 'appointment_list' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function filterDoctors() {
+  var spec = document.getElementById('specialty_filter').value;
+  var sel = document.getElementById('doctor_id');
+  for (var i = 0; i < sel.options.length; i++) {
+    var opt = sel.options[i];
+    if (opt.value === '') continue;
+    var specialties = (opt.getAttribute('data-specialties') || '').split(',');
+    opt.style.display = (!spec || specialties.indexOf(spec) !== -1) ? '' : 'none';
+  }
+  sel.value = '';
+}
+</script>
+{% endblock %}

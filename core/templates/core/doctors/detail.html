@@ -1,0 +1,67 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Dr. {{ doctor.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Dr. {{ doctor.user.get_full_name }}</h1>
+    <p>{% for s in doctor.specialties.all %}{{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+  </div>
+  <a href="{% url 'doctor_list' %}" class="btn btn-outline">← All Doctors</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+  <div class="card">
+    <div class="card-header"><strong>Professional Info</strong></div>
+    <div class="card-body">
+      <div style="margin-bottom:12px;">
+        <div style="font-size:0.75rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.02em;">License</div>
+        <div>{{ doctor.license_number }}</div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:0.75rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.02em;">Experience</div>
+        <div>{{ doctor.years_of_experience }} years</div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:0.75rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.02em;">Fee</div>
+        <div>${{ doctor.consultation_fee }}</div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:0.75rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.02em;">Location</div>
+        <div>{{ doctor.office_location|default:"Not specified" }}</div>
+      </div>
+      {% if doctor.bio %}
+      <div>
+        <div style="font-size:0.75rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.02em;">Bio</div>
+        <div style="font-size:0.875rem;">{{ doctor.bio }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><strong>Available Appointments</strong></div>
+    <div class="card-body">
+      {% if upcoming %}
+      <ul style="list-style:none;padding:0;margin:0;">
+        {% for apt in upcoming %}
+        <li style="padding:8px 0;border-bottom:1px solid var(--color-border);font-size:0.875rem;">
+          {{ apt.appointment_date|date:"M d, Y" }} at {{ apt.appointment_time|time:"H:i" }}
+          <span class="badge
+            {% if apt.status == 'CONFIRMED' %}badge-success
+            {% elif apt.status == 'PENDING' %}badge-warning
+            {% else %}badge-neutral{% endif %}">{{ apt.get_status_display }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div style="text-align:center;padding:24px;color:var(--color-text-muted);font-size:0.875rem;">No upcoming appointments.</div>
+      {% endif %}
+    </div>
+    <div class="card-header" style="border-top:1px solid var(--color-border);">
+      <a href="{% url 'book_appointment' %}?doctor={{ doctor.id }}" class="btn btn-primary" style="width:100%;">Book Appointment</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

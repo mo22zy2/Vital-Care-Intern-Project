@@ -1,0 +1,265 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Reports</h1>
+    <p>Year-to-date analytics across all modules.</p>
+  </div>
+</div>
+
+<!-- ── Overview Stats ── -->
+<div class="stats-grid">
+  <div class="stat-card info">
+    <div class="stat-card-icon">📅</div>
+    <div class="stat-card-body">
+      <div class="stat-card-value">{{ total_appointments }}</div>
+      <div class="stat-card-label">Total Appointments</div>
+    </div>
+  </div>
+  <div class="stat-card success">
+    <div class="stat-card-icon">▣</div>
+    <div class="stat-card-body">
+      <div class="stat-card-value">${{ total_revenue }}</div>
+      <div class="stat-card-label">Revenue (YTD)</div>
+    </div>
+  </div>
+  <div class="stat-card accent">
+    <div class="stat-card-icon">◉</div>
+    <div class="stat-card-body">
+      <div class="stat-card-value">{{ active_doctors }}/{{ total_doctors }}</div>
+      <div class="stat-card-label">Active Doctors</div>
+    </div>
+  </div>
+  <div class="stat-card danger">
+    <div class="stat-card-icon">⚕︎</div>
+    <div class="stat-card-body">
+      <div class="stat-card-value">{{ total_medicines }}</div>
+      <div class="stat-card-label">Medicines ({{ low_stock }} low stock)</div>
+    </div>
+  </div>
+  <div class="stat-card warning">
+    <div class="stat-card-icon">◉</div>
+    <div class="stat-card-body">
+      <div class="stat-card-value">{{ total_lab_tests }}</div>
+      <div class="stat-card-label">Lab Tests</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon">👤</div>
+    <div class="stat-card-body">
+      <div class="stat-card-value">{{ total_users }}</div>
+      <div class="stat-card-label">Total Users</div>
+    </div>
+  </div>
+</div>
+
+<div class="section-grid section-grid-2" style="margin-top:24px;">
+
+  <!-- ── Appointments by Status ── -->
+  <div class="card">
+    <div class="card-header"><h3>Appointments by Status</h3></div>
+    <div class="card-body" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Status</th><th>Count</th><th>%</th></tr>
+        </thead>
+        <tbody>
+          {% for s, count in appointments_by_status.items %}
+          <tr>
+            <td><span class="badge
+              {% if s == 'CONFIRMED' %}badge-success
+              {% elif s == 'PENDING' %}badge-warning
+              {% elif s == 'COMPLETED' %}badge-info
+              {% elif s == 'CANCELLED' or s == 'NO_SHOW' %}badge-danger
+              {% else %}badge-neutral{% endif %}">{{ s }}</span></td>
+            <td><strong>{{ count }}</strong></td>
+            <td>{% widthratio count total_appointments 100 %}%</td>
+          </tr>
+          {% endfor %}
+          <tr style="font-weight:600;">
+            <td>Total</td><td>{{ total_appointments }}</td><td>100%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Revenue by Status ── -->
+  <div class="card">
+    <div class="card-header"><h3>Invoices by Status</h3></div>
+    <div class="card-body" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Status</th><th>Count</th></tr>
+        </thead>
+        <tbody>
+          {% for s, count in invoices_by_status.items %}
+          <tr>
+            <td><span class="badge
+              {% if s == 'PAID' %}badge-success
+              {% elif s == 'UNPAID' or s == 'OVERDUE' %}badge-danger
+              {% elif s == 'PARTIALLY_PAID' %}badge-warning
+              {% else %}badge-neutral{% endif %}">{{ s }}</span></td>
+            <td>{{ count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Top Doctors ── -->
+  <div class="card">
+    <div class="card-header"><h3>Top Doctors by Appointments</h3></div>
+    <div class="card-body" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Doctor</th><th>Appointments</th></tr>
+        </thead>
+        <tbody>
+          {% for d in top_doctors %}
+          <tr>
+            <td>Dr. {{ d.doctor__user__first_name }} {{ d.doctor__user__last_name }}</td>
+            <td><strong>{{ d.count }}</strong></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="2"><div class="empty-state" style="padding:24px;"><p>No data yet.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Pharmacy Orders by Status ── -->
+  <div class="card">
+    <div class="card-header"><h3>Pharmacy Orders by Status</h3></div>
+    <div class="card-body" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Status</th><th>Count</th></tr>
+        </thead>
+        <tbody>
+          {% for s, count in orders_by_status.items %}
+          <tr>
+            <td><span class="badge
+              {% if s == 'DELIVERED' %}badge-success
+              {% elif s == 'PENDING' %}badge-warning
+              {% elif s == 'PROCESSING' %}badge-info
+              {% elif s == 'CANCELLED' %}badge-danger
+              {% else %}badge-neutral{% endif %}">{{ s }}</span></td>
+            <td>{{ count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Lab Bookings by Status ── -->
+  <div class="card">
+    <div class="card-header"><h3>Lab Bookings by Status</h3></div>
+    <div class="card-body" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Status</th><th>Count</th></tr>
+        </thead>
+        <tbody>
+          {% for s, count in lab_bookings_by_status.items %}
+          <tr>
+            <td><span class="badge badge-neutral">{{ s }}</span></td>
+            <td>{{ count }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="2"><div class="empty-state" style="padding:24px;"><p>No data yet.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Users by Role ── -->
+  <div class="card">
+    <div class="card-header"><h3>Users by Role ({{ total_users }} total)</h3></div>
+    <div class="card-body" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Role</th><th>Count</th></tr>
+        </thead>
+        <tbody>
+          {% for r, count in users_by_role.items %}
+          <tr>
+            <td><span class="badge badge-neutral">{{ r }}</span></td>
+            <td>{{ count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Feedback ── -->
+  <div class="card">
+    <div class="card-header"><h3>Feedback Summary</h3></div>
+    <div class="card-body">
+      <div style="display:flex;gap:32px;padding:16px 0;">
+        <div>
+          <div style="font-size:2rem;font-weight:700;color:var(--color-text);">{{ avg_rating }}</div>
+          <div style="font-size:0.8125rem;color:var(--color-text-muted);">Average Rating</div>
+        </div>
+        <div>
+          <div style="font-size:2rem;font-weight:700;color:var(--color-text);">{{ feedback_count }}</div>
+          <div style="font-size:0.8125rem;color:var(--color-text-muted);">Total Reviews</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Monthly Appointments ── -->
+  <div class="card">
+    <div class="card-header"><h3>Monthly Appointments (YTD)</h3></div>
+    <div class="card-body" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Month</th><th>Appointments</th></tr>
+        </thead>
+        <tbody>
+          {% for m in appointments_by_month %}
+          <tr>
+            <td>{{ m.month|date:"F Y" }}</td>
+            <td><strong>{{ m.count }}</strong></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="2"><div class="empty-state" style="padding:24px;"><p>No appointments this year yet.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Monthly Revenue ── -->
+  <div class="card">
+    <div class="card-header"><h3>Monthly Revenue (YTD)</h3></div>
+    <div class="card-body" style="padding:0;">
+      <table>
+        <thead>
+          <tr><th>Month</th><th>Revenue</th></tr>
+        </thead>
+        <tbody>
+          {% for m in revenue_by_month %}
+          <tr>
+            <td>{{ m.month|date:"F Y" }}</td>
+            <td><strong>${{ m.total|floatformat:0 }}</strong></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="2"><div class="empty-state" style="padding:24px;"><p>No paid invoices this year yet.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

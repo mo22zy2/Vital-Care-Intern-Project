@@ -1,0 +1,22 @@
+{% extends "core/base.html" %}{% load static %}{% block title %}Prescriptions{% endblock %}
+{% block content %}
+<div class="page-header"><div class="page-header-content"><h1>Prescriptions</h1><p>All patient prescriptions.</p></div></div>
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search patient or doctor..." value="{{ query }}" style="width:220px;">
+      <select class="form-select" name="status" onchange="this.form.submit()"><option value="">All</option>{% for k,v in statuses %}<option value="{{ k }}" {% if selected_status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select>
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Patient</th><th>Doctor</th><th>Date</th><th>Items</th><th>Status</th></tr></thead>
+      <tbody>{% for rx in prescriptions %}<tr><td><strong>{{ rx.patient.get_full_name }}</strong></td><td>Dr. {{ rx.doctor.user.get_full_name }}</td><td>{{ rx.date_prescribed|date:"M d, Y" }}</td>
+      <td><ul style="margin:0;padding-left:1rem;font-size:0.8125rem;">{% for i in rx.items.all %}<li>{{ i.medicine.name }} — {{ i.dosage }} ({{ i.quantity }})</li>{% endfor %}</ul></td>
+      <td><span class="badge {% if rx.status == 'ACTIVE' %}badge-success{% elif rx.status == 'COMPLETED' %}badge-info{% else %}badge-danger{% endif %}">{{ rx.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5"><div class="empty-state" style="padding:24px;"><p>No prescriptions found.</p></div></td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% include "core/admin/_pagination.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Appointments{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Appointments</h1>
+    <p>{% if is_patient %}Your upcoming and past appointments.{% else %}Manage and schedule patient appointments.{% endif %}</p>
+  </div>
+  <a href="{% url 'book_appointment' %}" class="btn btn-primary">+ Book Appointment</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <select class="form-select" name="status" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        <option value="PENDING" {% if selected_status == 'PENDING' %}selected{% endif %}>Pending</option>
+        <option value="CONFIRMED" {% if selected_status == 'CONFIRMED' %}selected{% endif %}>Confirmed</option>
+        <option value="COMPLETED" {% if selected_status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+        <option value="CANCELLED" {% if selected_status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+      </select>
+      <input class="form-input" type="text" name="q" placeholder="{% if is_patient %}Search doctor…{% else %}Search patient…{% endif %}" value="{{ query }}" style="width:200px;min-width:unset;">
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          {% if not is_patient %}<th>Patient</th>{% endif %}
+          <th>Doctor</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for apt in appointments %}
+        <tr>
+          {% if not is_patient %}<td><strong>{{ apt.patient.get_full_name }}</strong></td>{% endif %}
+          <td>Dr. {{ apt.doctor.user.get_full_name }}</td>
+          <td>{{ apt.appointment_date|date:"M d, Y" }}</td>
+          <td>{{ apt.appointment_time|time:"H:i" }}</td>
+          <td><span style="font-size:0.8125rem;color:var(--color-text-muted);">{{ apt.get_reason_display }}</span></td>
+          <td>
+            <span class="badge
+              {% if apt.status == 'CONFIRMED' %}badge-success
+              {% elif apt.status == 'PENDING' %}badge-warning
+              {% elif apt.status == 'COMPLETED' %}badge-info
+              {% elif apt.status == 'CANCELLED' %}badge-danger
+              {% else %}badge-neutral{% endif %}">
+              {{ apt.get_status_display }}
+            </span>
+          </td>
+          <td>
+            {% if can_cancel and apt.status != 'CANCELLED' and apt.status != 'COMPLETED' %}
+            <a href="{% url 'cancel_appointment' apt.id %}" class="btn btn-sm btn-danger">Cancel</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state" style="padding:32px;">
+              <div class="empty-state-icon">📅</div>
+              <h3>No appointments</h3>
+              <p>{% if selected_status or query %}No appointments match your filter. Try different criteria.{% else %}{% if is_patient %}You haven't booked any appointments yet.{% else %}No appointments have been scheduled yet.{% endif %}{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "core/admin/_pagination.html" %}
+</div>
+{% endblock %}

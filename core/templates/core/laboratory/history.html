@@ -1,0 +1,60 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Lab Booking History{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Lab Booking History</h1>
+    <p>Your laboratory test bookings and results.</p>
+  </div>
+  <a href="{% url 'lab_book_test' %}" class="btn btn-primary">+ Book New Test</a>
+</div>
+
+<div class="card">
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Test</th>
+          <th>Scheduled</th>
+          <th>Status</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for booking in bookings %}
+        <tr>
+          <td><strong>{{ booking.lab_test.name }}</strong></td>
+          <td>{{ booking.scheduled_date|date:"M d, Y" }} at {{ booking.scheduled_time|time:"H:i" }}</td>
+          <td>
+            <span class="badge
+              {% if booking.status == 'RESULT_READY' %}badge-success
+              {% elif booking.status == 'BOOKED' %}badge-warning
+              {% elif booking.status == 'IN_PROGRESS' %}badge-info
+              {% elif booking.status == 'CANCELLED' %}badge-danger
+              {% else %}badge-neutral{% endif %}">
+              {{ booking.get_status_display }}
+            </span>
+          </td>
+          <td>
+            {% if booking.result %}
+            <span style="font-size:0.8125rem;">{{ booking.result.result_summary|truncatewords:20 }}</span>
+            {% elif booking.status == 'RESULT_READY' %}
+            <span style="color:var(--color-text-muted);font-size:0.8125rem;">View in records</span>
+            {% else %}
+            <span style="color:var(--color-text-muted);font-size:0.8125rem;">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4"><div class="empty-state" style="padding:24px;"><p>No bookings yet.</p></div></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "core/admin/_pagination.html" %}
+</div>
+{% endblock %}

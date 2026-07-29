@@ -1,0 +1,89 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Pharmacy Order Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Pharmacy Orders</h1>
+    <p>{{ page_obj.paginator.count }} total orders</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search patient..." value="{{ query }}" style="width:260px;">
+      <select class="form-select" name="status">
+        <option value="">All Statuses</option>
+        {% for key, label in statuses %}
+        <option value="{{ key }}" {% if selected_status == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Order #</th>
+          <th>Patient</th>
+          <th>Items</th>
+          <th>Ordered</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+        <tr>
+          <td><strong>#{{ o.id|truncatechars:8 }}</strong></td>
+          <td>{{ o.patient.get_full_name|default:o.patient.email }}</td>
+          <td>
+            {% for item in o.items.all %}
+            <div style="font-size:0.8125rem;">{{ item.quantity }}x {{ item.medicine.name }}</div>
+            {% empty %}
+            <span style="color:var(--color-text-muted);font-size:0.8125rem;">—</span>
+            {% endfor %}
+          </td>
+          <td style="font-size:0.8125rem;color:var(--color-text-muted);">{{ o.ordered_at|date:"M d, Y H:i" }}</td>
+          <td>
+            <span class="badge
+              {% if o.status == 'DELIVERED' %}badge-success
+              {% elif o.status == 'PENDING' %}badge-warning
+              {% elif o.status == 'PROCESSING' %}badge-info
+              {% elif o.status == 'CANCELLED' %}badge-danger
+              {% else %}badge-neutral{% endif %}">
+              {{ o.get_status_display }}
+            </span>
+          </td>
+          <td>
+            <form method="POST" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="order_id" value="{{ o.id }}">
+              <input type="hidden" name="action" value="change_status">
+              <select class="form-select" name="status" onchange="this.form.submit()" style="width:auto;min-width:100px;padding:2px 8px;font-size:0.8125rem;">
+                {% for key, label in statuses %}
+                <option value="{{ key }}" {% if o.status == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6">
+            <div class="empty-state" style="padding:32px;">
+              <h3>No orders found</h3>
+              <p>Try different search criteria.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "core/admin/_pagination.html" %}
+</div>
+{% endblock %}

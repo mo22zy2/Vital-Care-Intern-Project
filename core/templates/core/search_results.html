@@ -1,0 +1,26 @@
+{% extends "core/base.html" %}{% load static %}{% block title %}Search Results{% endblock %}
+{% block content %}
+<div class="page-header"><div class="page-header-content"><h1>Search Results</h1><p>{% if query %}Results for "{{ query }}"{% else %}Enter a search term.{% endif %}</p></div></div>
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search patients, doctors, medicines, invoices..." value="{{ query }}" style="width:400px;" autofocus>
+      <button type="submit" class="btn btn-sm btn-primary">Search</button>
+    </form>
+  </div>
+  <div class="card-body" style="padding:0;">
+    {% if results %}
+    <div style="display:flex;flex-direction:column;">
+      {% for r in results %}
+      <a href="{{ r.url }}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--color-border-light);text-decoration:none;color:inherit;">
+        <div><span class="badge badge-neutral" style="font-size:0.625rem;margin-right:8px;">{{ r.type }}</span><strong>{{ r.label }}</strong></div>
+        <span style="color:var(--color-primary);font-size:0.8125rem;">→</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% elif query %}
+    <div class="empty-state" style="padding:32px;"><h3>No results found</h3><p>Try a different search term.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

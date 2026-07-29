@@ -1,0 +1,98 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>{{ title }}</h1>
+  </div>
+</div>
+
+<div class="card" style="max-width:640px;">
+  <div class="card-body">
+    {% if error %}
+    <div style="background:rgba(217,68,59,0.08);color:var(--color-danger);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:20px;font-size:0.875rem;">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      {% csrf_token %}
+      {% for field in fields %}
+      <div class="form-group">
+        <label class="form-label" for="{{ field.name }}">{{ field.label }}{% if field.required %} <span style="color:var(--color-danger);">*</span>{% endif %}</label>
+
+        {% if field.type == "text" or field.type == "email" or field.type == "password" or field.type == "number" %}
+        <input class="form-input" type="{{ field.type }}" id="{{ field.name }}" name="{{ field.name }}"
+          value="{{ field.value|default:'' }}" {% if field.required %}required{% endif %}
+          {% if field.type == "number" %}step="0.01"{% endif %}>
+
+        {% elif field.type == "date" %}
+        <input class="form-input" type="date" id="{{ field.name }}" name="{{ field.name }}"
+          value="{{ field.value|default:'' }}" {% if field.required %}required{% endif %}>
+
+        {% elif field.type == "time" %}
+        <input class="form-input" type="time" id="{{ field.name }}" name="{{ field.name }}"
+          value="{{ field.value|default:'' }}" {% if field.required %}required{% endif %}>
+
+        {% elif field.type == "textarea" %}
+        <textarea class="form-input" id="{{ field.name }}" name="{{ field.name }}" rows="4"
+          {% if field.required %}required{% endif %}>{{ field.value|default:'' }}</textarea>
+
+        {% elif field.type == "checkbox" %}
+        <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer;">
+          <input type="checkbox" id="{{ field.name }}" name="{{ field.name }}"
+            {% if field.checked %}checked{% endif %}>
+          {{ field.label }}
+        </label>
+
+        {% elif field.type == "select" %}
+        <select class="form-select" id="{{ field.name }}" name="{{ field.name }}" {% if field.required %}required{% endif %}>
+          <option value="">— Select —</option>
+          {% for key, label in field.choices %}
+          <option value="{{ key }}" {% if field.value == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        {% elif field.type == "select_multi" %}
+        <select class="form-select" id="{{ field.name }}" name="{{ field.name }}" multiple size="4"
+          style="min-height:100px;">
+          {% for key, label in field.choices %}
+          <option value="{{ key }}" {% if field.value and key|stringformat:"s" in field.value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        {% elif field.type == "select_user" %}
+        <select class="form-select" id="{{ field.name }}" name="{{ field.name }}" {% if field.required %}required{% endif %}>
+          <option value="">— Select User —</option>
+          {% for u in field.queryset %}
+          <option value="{{ u.id }}" {% if field.value == u.id|stringformat:"s" %}selected{% endif %}>
+            {{ u.get_full_name|default:u.email }} ({{ u.email }})
+          </option>
+          {% endfor %}
+        </select>
+
+        {% elif field.type == "select_doctor" %}
+        <select class="form-select" id="{{ field.name }}" name="{{ field.name }}" {% if field.required %}required{% endif %}>
+          <option value="">— Select Doctor —</option>
+          {% for d in field.queryset %}
+          <option value="{{ d.id }}" {% if field.value == d.id|stringformat:"s" %}selected{% endif %}>
+            Dr. {{ d.user.get_full_name }} — {{ d.license_number }}
+          </option>
+          {% endfor %}
+        </select>
+
+        {% elif field.type == "readonly" %}
+        <div style="padding:10px 14px;background:var(--color-bg);border-radius:var(--radius-sm);font-size:0.875rem;color:var(--color-text-muted);">{{ field.value }}</div>
+
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <div style="display:flex;gap:12px;margin-top:24px;">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="{% url cancel_url %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

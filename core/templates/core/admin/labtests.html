@@ -1,0 +1,64 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Lab Test Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Lab Test Management</h1>
+    <p>{{ page_obj.paginator.count }} total tests</p>
+  </div>
+  <a href="{% url 'admin_labtest_create' %}" class="btn btn-primary">+ Add Lab Test</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search by name or category..." value="{{ query }}" style="width:260px;">
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tests %}
+        <tr>
+          <td><strong>{{ t.name }}</strong></td>
+          <td><span class="badge badge-neutral">{{ t.category|default:"General" }}</span></td>
+          <td>${{ t.price }}</td>
+          <td>{% if t.is_active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-danger">Inactive</span>{% endif %}</td>
+          <td>
+            <a href="{% url 'admin_labtest_edit' t.id %}" class="btn btn-sm btn-ghost">Edit</a>
+            <form method="POST" style="display:inline;" onsubmit="return confirm('Delete {{ t.name }}?');">
+              {% csrf_token %}
+              <input type="hidden" name="test_id" value="{{ t.id }}">
+              <input type="hidden" name="action" value="delete">
+              <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5">
+            <div class="empty-state" style="padding:32px;">
+              <h3>No lab tests found</h3>
+              <p>{% if query %}Try a different search.{% else %}Add your first lab test.{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "core/admin/_pagination.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}My Appointments{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>My Appointments</h1>
+    <p>Manage your patient appointments.</p>
+  </div>
+  <a href="{% url 'doctor_dashboard' %}" class="btn btn-outline">← Dashboard</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <select class="form-select" name="status" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        <option value="PENDING" {% if selected_status == 'PENDING' %}selected{% endif %}>Pending</option>
+        <option value="CONFIRMED" {% if selected_status == 'CONFIRMED' %}selected{% endif %}>Confirmed</option>
+        <option value="COMPLETED" {% if selected_status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+        <option value="CANCELLED" {% if selected_status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+      </select>
+      <input class="form-input" type="text" name="q" placeholder="Search patient…" value="{{ query }}" style="width:200px;min-width:unset;">
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for apt in appointments %}
+        <tr>
+          <td><strong>{{ apt.patient.get_full_name }}</strong></td>
+          <td>{{ apt.appointment_date|date:"M d, Y" }}</td>
+          <td>{{ apt.appointment_time|time:"H:i" }}</td>
+          <td><span style="font-size:0.8125rem;color:var(--color-text-muted);">{{ apt.get_reason_display }}</span></td>
+          <td>
+            <span class="badge
+              {% if apt.status == 'CONFIRMED' %}badge-success
+              {% elif apt.status == 'PENDING' %}badge-warning
+              {% elif apt.status == 'COMPLETED' %}badge-info
+              {% elif apt.status == 'CANCELLED' %}badge-danger
+              {% else %}badge-neutral{% endif %}">{{ apt.get_status_display }}</span>
+          </td>
+          <td style="white-space:nowrap;">
+            {% if apt.status == 'PENDING' %}
+            <form method="POST" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="accept">
+              <input type="hidden" name="appointment_id" value="{{ apt.id }}">
+              <button type="submit" class="btn btn-sm btn-success">Accept</button>
+            </form>
+            <form method="POST" style="display:inline;" onsubmit="return confirm('Cancel this appointment?');">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="cancel">
+              <input type="hidden" name="appointment_id" value="{{ apt.id }}">
+              <input type="hidden" name="reason" value="Cancelled by doctor">
+              <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+            </form>
+            {% elif apt.status == 'CONFIRMED' %}
+            <form method="POST" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="complete">
+              <input type="hidden" name="appointment_id" value="{{ apt.id }}">
+              <button type="submit" class="btn btn-sm btn-primary">Complete</button>
+            </form>
+            <form method="POST" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="no_show">
+              <input type="hidden" name="appointment_id" value="{{ apt.id }}">
+              <button type="submit" class="btn btn-sm btn-danger">No Show</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6"><div class="empty-state" style="padding:24px;"><p>No appointments found.</p></div></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

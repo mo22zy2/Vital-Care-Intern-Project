@@ -1,0 +1,64 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}New Order{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>New Pharmacy Order</h1>
+    <p>Select medicines and quantities to place an order.</p>
+  </div>
+  <a href="{% url 'medicine_list' %}" class="btn btn-outline">← Back to Pharmacy</a>
+</div>
+
+<div class="card" style="max-width:720px;">
+  <div class="card-body">
+    {% if error %}
+    <div style="background:rgba(217,68,59,0.08);color:var(--color-danger);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:20px;font-size:0.875rem;">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" id="orderForm">
+      {% csrf_token %}
+
+      <div id="orderItems">
+        <div class="order-item-row" style="display:flex;gap:12px;margin-bottom:12px;align-items:end;">
+          <div class="form-group" style="flex:2;margin:0;">
+            <label class="form-label">Medicine</label>
+            <select class="form-select" name="medicine_id" required>
+              <option value="">— Select —</option>
+              {% for m in medicines %}
+              <option value="{{ m.id }}" data-price="{{ m.price }}" data-stock="{{ m.stock_quantity }}">
+                {{ m.name }} ({{ m.strength }}) — ${{ m.price }} — Stock: {{ m.stock_quantity }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group" style="flex:1;margin:0;">
+            <label class="form-label">Quantity</label>
+            <input class="form-input" type="number" name="quantity" min="1" value="1" required>
+          </div>
+          <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.order-item-row').remove()" style="margin-bottom:2px;">✕</button>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-sm btn-outline" onclick="addOrderItem()" style="margin-bottom:20px;">+ Add Another Medicine</button>
+
+      <div style="display:flex;gap:12px;margin-top:24px;padding-top:20px;border-top:1px solid var(--color-border);">
+        <button type="submit" class="btn btn-primary">Place Order</button>
+        <a href="{% url 'medicine_list' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function addOrderItem() {
+  var container = document.getElementById('orderItems');
+  var first = container.querySelector('.order-item-row');
+  var clone = first.cloneNode(true);
+  clone.querySelector('select').value = '';
+  clone.querySelector('input[type="number"]').value = '1';
+  container.appendChild(clone);
+}
+</script>
+{% endblock %}

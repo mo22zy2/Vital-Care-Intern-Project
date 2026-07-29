@@ -1,0 +1,86 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Doctor Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Doctor Management</h1>
+    <p>{{ page_obj.paginator.count }} total doctors</p>
+  </div>
+  <a href="{% url 'admin_doctor_create' %}" class="btn btn-primary">+ Add Doctor</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search name, email, license..." value="{{ query }}" style="width:260px;">
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>License</th>
+          <th>Specialties</th>
+          <th>Fee</th>
+          <th>Doctor Active</th>
+          <th>Account Active</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for doc in doctors %}
+        <tr class="{% if not doc.is_active or not doc.user.is_active %}highlight{% endif %}">
+          <td><strong>Dr. {{ doc.user.get_full_name }}</strong></td>
+          <td>{{ doc.user.email }}</td>
+          <td style="font-size:0.8125rem;">{{ doc.license_number }}</td>
+          <td>
+            {% for s in doc.specialties.all %}
+            <span class="badge badge-neutral">{{ s.name }}</span>
+            {% empty %}
+            <span style="color:var(--color-text-muted);">—</span>
+            {% endfor %}
+          </td>
+          <td>${{ doc.consultation_fee }}</td>
+          <td>{% if doc.is_active %}<span style="color:var(--color-success);font-weight:600;">Active</span>{% else %}<span style="color:var(--color-danger);font-weight:600;">Inactive</span>{% endif %}</td>
+          <td>{% if doc.user.is_active %}<span style="color:var(--color-success);font-weight:600;">Active</span>{% else %}<span style="color:var(--color-danger);font-weight:600;">Inactive</span>{% endif %}</td>
+          <td>
+            <a href="{% url 'admin_doctor_edit' doc.id %}" class="btn btn-sm btn-ghost">Edit</a>
+            <form method="POST" style="display:inline-block;">
+              {% csrf_token %}
+              <input type="hidden" name="doctor_id" value="{{ doc.id }}">
+              <input type="hidden" name="action" value="toggle_active">
+              <button type="submit" class="btn btn-sm {% if doc.is_active %}btn-warning{% else %}btn-success{% endif %}">
+                {% if doc.is_active %}Disable{% else %}Enable{% endif %}
+              </button>
+            </form>
+            <form method="POST" style="display:inline-block;">
+              {% csrf_token %}
+              <input type="hidden" name="doctor_id" value="{{ doc.id }}">
+              <input type="hidden" name="action" value="toggle_user_active">
+              <button type="submit" class="btn btn-sm btn-ghost" style="margin-left:4px;">
+                {% if doc.user.is_active %}Lock{% else %}Unlock{% endif %}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8">
+            <div class="empty-state" style="padding:32px;">
+              <h3>No doctors found</h3>
+              <p>Try different search criteria.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "core/admin/_pagination.html" %}
+</div>
+{% endblock %}

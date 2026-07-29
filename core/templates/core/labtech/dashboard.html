@@ -1,0 +1,48 @@
+{% extends "core/base.html" %}{% load static %}{% block title %}Lab Technician{% endblock %}
+{% block content %}
+<div class="page-header"><div class="page-header-content"><h1>Lab Technician Dashboard</h1><p>Manage lab tests and release results.</p></div></div>
+<div class="stats-grid">
+  <div class="stat-card accent"><div class="stat-card-value">{{ pending.count }}</div><div class="stat-card-label">New Bookings</div></div>
+  <div class="stat-card info"><div class="stat-card-value">{{ in_progress.count }}</div><div class="stat-card-label">In Progress</div></div>
+  <div class="stat-card warning"><div class="stat-card-value">{{ total_today }}</div><div class="stat-card-label">Today</div></div>
+</div>
+<div class="section-grid section-grid-2">
+  <div class="card">
+    <div class="card-header"><h3>New Bookings</h3></div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Patient</th><th>Test</th><th>Date</th><th></th></tr></thead>
+        <tbody>{% for b in pending %}<tr><td><strong>{{ b.patient.get_full_name }}</strong></td><td>{{ b.lab_test.name }}</td><td>{{ b.scheduled_date|date:"M d" }}</td>
+        <td><form method="POST" style="display:inline;">{% csrf_token %}<input type="hidden" name="booking_id" value="{{ b.id }}">
+          <button type="submit" name="action" value="collect_sample" class="btn btn-sm btn-primary">Collect Sample</button>
+        </form></td></tr>{% empty %}<tr><td colspan="4"><div class="empty-state" style="padding:24px;"><p>No new bookings.</p></div></td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>In Progress</h3></div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Patient</th><th>Test</th><th>Status</th><th></th></tr></thead>
+        <tbody>{% for b in in_progress %}<tr><td><strong>{{ b.patient.get_full_name }}</strong></td><td>{{ b.lab_test.name }}</td><td><span class="badge badge-info">{{ b.get_status_display }}</span></td>
+        <td>
+          {% if b.status == 'SAMPLE_COLLECTED' %}
+          <form method="POST" style="display:inline;">{% csrf_token %}<input type="hidden" name="booking_id" value="{{ b.id }}">
+            <button type="submit" name="action" value="start_test" class="btn btn-sm btn-primary">Start Test</button>
+          </form>
+          {% elif b.status == 'IN_PROGRESS' %}
+          <details style="display:inline-block;">
+            <summary class="btn btn-sm btn-success" style="cursor:pointer;">Release Result</summary>
+            <form method="POST" style="position:absolute;background:var(--color-surface);border:1px solid var(--color-border);padding:8px;border-radius:var(--radius-sm);z-index:10;min-width:240px;">
+              {% csrf_token %}<input type="hidden" name="booking_id" value="{{ b.id }}"><input type="hidden" name="action" value="release_result">
+              <textarea name="result_summary" rows="2" placeholder="Result summary..." style="width:100%;font-size:0.8125rem;" required></textarea>
+              <button type="submit" class="btn btn-sm btn-primary" style="margin-top:4px;">Release</button>
+            </form>
+          </details>
+          {% endif %}
+        </td></tr>{% empty %}<tr><td colspan="4"><div class="empty-state" style="padding:24px;"><p>No tests in progress.</p></div></td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

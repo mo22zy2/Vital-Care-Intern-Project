@@ -1,0 +1,58 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Order #{{ order.id|truncatechars:8 }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Order Details</h1>
+    <p>Order placed on {{ order.ordered_at|date:"M d, Y H:i" }}</p>
+  </div>
+  <a href="{% url 'medicine_list' %}" class="btn btn-outline">← Pharmacy</a>
+</div>
+
+<div class="card" style="max-width:640px;">
+  <div class="card-body">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div>
+        <strong>Status:</strong>
+        <span class="badge
+          {% if order.status == 'DELIVERED' %}badge-success
+          {% elif order.status == 'PROCESSING' %}badge-warning
+          {% elif order.status == 'CANCELLED' %}badge-danger
+          {% else %}badge-neutral{% endif %}">
+          {{ order.get_status_display }}
+        </span>
+      </div>
+      <div style="font-size:0.875rem;color:var(--color-text-muted);">Order #{{ order.id|truncatechars:12 }}</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Medicine</th>
+          <th>Price</th>
+          <th>Qty</th>
+          <th>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.medicine.name }} ({{ item.medicine.strength }})</td>
+          <td>${{ item.unit_price }}</td>
+          <td>{{ item.quantity }}</td>
+          <td>${{ item.unit_price|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">No items in this order.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="text-align:right;margin-top:16px;font-size:1.1rem;font-weight:700;">
+      Total: ${{ total|floatformat:2 }}
+    </div>
+  </div>
+</div>
+{% endblock %}

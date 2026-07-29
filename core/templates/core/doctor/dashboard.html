@@ -1,0 +1,88 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Doctor Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Doctor Dashboard</h1>
+    <p>Welcome, Dr. {{ user.get_full_name }}.</p>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card accent">
+    <div class="stat-card-value">{{ total_today }}</div>
+    <div class="stat-card-label">Appointments Today</div>
+  </div>
+  <div class="stat-card warning">
+    <div class="stat-card-value">{{ total_pending }}</div>
+    <div class="stat-card-label">Pending Requests</div>
+  </div>
+  <div class="stat-card success">
+    <div class="stat-card-value">{{ total_completed }}</div>
+    <div class="stat-card-label">Completed</div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:24px;">
+  <div class="card-header">
+    <h3>Upcoming Appointments</h3>
+    <a href="{% url 'doctor_appointments' %}" class="btn btn-sm btn-ghost">View all</a>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for apt in upcoming %}
+        <tr>
+          <td><strong>{{ apt.patient.get_full_name }}</strong></td>
+          <td>{{ apt.appointment_date|date:"M d, Y" }}</td>
+          <td>{{ apt.appointment_time|time:"H:i" }}</td>
+          <td><span style="font-size:0.8125rem;color:var(--color-text-muted);">{{ apt.get_reason_display }}</span></td>
+          <td>
+            <span class="badge
+              {% if apt.status == 'CONFIRMED' %}badge-success
+              {% elif apt.status == 'PENDING' %}badge-warning
+              {% elif apt.status == 'COMPLETED' %}badge-info
+              {% elif apt.status == 'CANCELLED' %}badge-danger
+              {% else %}badge-neutral{% endif %}">{{ apt.get_status_display }}</span>
+          </td>
+          <td>
+            {% if apt.status == 'PENDING' %}
+            <form method="POST" action="{% url 'doctor_appointments' %}" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="accept">
+              <input type="hidden" name="appointment_id" value="{{ apt.id }}">
+              <button type="submit" class="btn btn-sm btn-success">Accept</button>
+            </form>
+            {% endif %}
+            {% if apt.status == 'CONFIRMED' %}
+            <form method="POST" action="{% url 'doctor_appointments' %}" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="complete">
+              <input type="hidden" name="appointment_id" value="{{ apt.id }}">
+              <button type="submit" class="btn btn-sm btn-primary">Complete</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6"><div class="empty-state" style="padding:24px;"><p>No upcoming appointments.</p></div></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VitalCare — Hospital Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+  <style>
+    body { background: var(--color-bg); min-height: 100vh; display: flex; flex-direction: column; }
+    .landing-header { padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; }
+    .landing-brand { display: flex; align-items: center; gap: 12px; }
+    .landing-brand-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 800; font-size: 1.25rem; color: white; }
+    .landing-brand-text { font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; color: var(--color-text); }
+    .landing-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px 24px; max-width: 720px; margin: 0 auto; }
+    .landing-hero h1 { font-family: var(--font-display); font-size: 3rem; font-weight: 800; line-height: 1.15; color: var(--color-text); margin: 0 0 16px; }
+    .landing-hero h1 span { color: var(--color-accent); }
+    .landing-hero p { font-size: 1.125rem; color: var(--color-text-muted); line-height: 1.6; margin: 0 0 40px; max-width: 520px; }
+    .landing-actions { display: flex; gap: 12px; }
+    .landing-stats { display: flex; gap: 48px; margin-top: 60px; padding-top: 40px; border-top: 1px solid var(--color-border); }
+    .landing-stat { text-align: center; }
+    .landing-stat-value { font-family: var(--font-display); font-size: 1.75rem; font-weight: 700; color: var(--color-primary); }
+    .landing-stat-label { font-size: 0.875rem; color: var(--color-text-muted); margin-top: 4px; }
+    .landing-footer { text-align: center; padding: 24px; font-size: 0.8125rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); }
+    @media (max-width: 640px) {
+      .landing-hero h1 { font-size: 2rem; }
+      .landing-stats { flex-direction: column; gap: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="landing-header">
+    <div class="landing-brand">
+      <div class="landing-brand-icon">V</div>
+      <span class="landing-brand-text">VitalCare</span>
+    </div>
+    <div>
+      <a href="{% url 'account_login' %}" class="btn btn-ghost" style="margin-right:8px;">Sign In</a>
+      <a href="{% url 'account_register' %}" class="btn btn-primary">Get Started</a>
+    </div>
+  </header>
+
+  <section class="landing-hero">
+    <h1>Modern <span>Hospital</span><br>Management Platform</h1>
+    <p>Streamline appointments, manage medical records, pharmacy, billing, and lab tests — all in one place.</p>
+    <div class="landing-actions">
+      <a href="{% url 'account_register' %}" class="btn btn-primary btn-lg">Create Account</a>
+      <a href="{% url 'account_login' %}" class="btn btn-outline btn-lg">Sign In</a>
+    </div>
+    <div class="landing-stats">
+      <div class="landing-stat">
+        <div class="landing-stat-value">14+</div>
+        <div class="landing-stat-label">Modules</div>
+      </div>
+      <div class="landing-stat">
+        <div class="landing-stat-value">99.9%</div>
+        <div class="landing-stat-label">Uptime</div>
+      </div>
+      <div class="landing-stat">
+        <div class="landing-stat-value">24/7</div>
+        <div class="landing-stat-label">Support</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    &copy; {% now "Y" %} VitalCare Hospital Management System
+  </footer>
+</body>
+</html>

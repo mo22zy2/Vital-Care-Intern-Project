@@ -1,0 +1,39 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Cancel Appointment{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Cancel Appointment</h1>
+    <p>Cancel your appointment with Dr. {{ appointment.doctor.user.get_full_name }}.</p>
+  </div>
+  <a href="{% url 'appointment_list' %}" class="btn btn-outline">← My Appointments</a>
+</div>
+
+<div class="card" style="max-width:560px;">
+  <div class="card-body">
+    <div style="background:rgba(217,68,59,0.08);padding:16px;border-radius:var(--radius-sm);margin-bottom:20px;">
+      <strong style="color:var(--color-danger);">⚠️ You are about to cancel this appointment:</strong>
+      <div style="margin-top:8px;font-size:0.875rem;">
+        <div><strong>Doctor:</strong> Dr. {{ appointment.doctor.user.get_full_name }}</div>
+        <div><strong>Date:</strong> {{ appointment.appointment_date|date:"M d, Y" }}</div>
+        <div><strong>Time:</strong> {{ appointment.appointment_time|time:"H:i" }}</div>
+        <div><strong>Reason:</strong> {{ appointment.get_reason_display }}</div>
+      </div>
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label" for="reason">Cancellation Reason</label>
+        <textarea class="form-input" id="reason" name="reason" rows="3" placeholder="Optional: tell us why you're cancelling…"></textarea>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:24px;">
+        <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+        <a href="{% url 'appointment_list' %}" class="btn btn-outline">Keep Appointment</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

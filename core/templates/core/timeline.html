@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}{% load static %}{% block title %}Patient Timeline{% endblock %}
+{% block content %}
+<div class="page-header"><div class="page-header-content"><h1>Timeline</h1><p>Your complete medical timeline.</p></div></div>
+<div class="card">
+  <div style="padding:16px;">
+    {% if events %}
+    <div style="position:relative;padding-left:24px;">
+      <div style="position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--color-border);"></div>
+      {% for e in events %}
+      <div style="position:relative;padding-bottom:20px;">
+        <div style="position:absolute;left:-20px;top:4px;width:12px;height:12px;border-radius:50%;
+          {% if e.type == 'Appointment' %}background:var(--color-primary);
+          {% elif e.type == 'Medical Record' %}background:var(--color-accent);
+          {% elif e.type == 'Prescription' %}background:var(--color-success);
+          {% elif e.type == 'Lab Test' %}background:var(--color-info);{% endif %}"></div>
+        <div style="font-size:0.75rem;color:var(--color-text-muted);">{{ e.date|date:"M d, Y" }}{% if e.time %} {{ e.time|time:"H:i" }}{% endif %}</div>
+        <div style="font-weight:600;font-size:0.875rem;">{{ e.type }}</div>
+        <div style="font-size:0.8125rem;">{{ e.title }}</div>
+        {% if e.status %}<span class="badge
+          {% if e.status == 'CONFIRMED' or e.status == 'ACTIVE' or e.status == 'COMPLETED' or e.status == 'RESULT_READY' %}badge-success
+          {% elif e.status == 'PENDING' or e.status == 'BOOKED' %}badge-warning
+          {% elif e.status == 'CANCELLED' %}badge-danger
+          {% else %}badge-neutral{% endif %}" style="font-size:0.625rem;">{{ e.status }}</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:32px;"><div class="empty-state-icon">📋</div><h3>No activity yet</h3><p>Your medical timeline will populate as you use the system.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

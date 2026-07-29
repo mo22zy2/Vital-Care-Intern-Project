@@ -1,0 +1,45 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Lab Bookings{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content"><h1>Lab Bookings</h1><p>Manage lab test bookings and release results.</p></div>
+</div>
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search patient or test..." value="{{ query }}" style="width:220px;">
+      <select class="form-select" name="status" onchange="this.form.submit()">
+        <option value="">All Statuses</option>{% for k,v in statuses %}<option value="{{ k }}" {% if selected_status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Patient</th><th>Test</th><th>Scheduled</th><th>Status</th><th>Result</th><th></th></tr></thead>
+      <tbody>{% for b in bookings %}<tr><td><strong>{{ b.patient.get_full_name }}</strong></td><td>{{ b.lab_test.name }}</td><td>{{ b.scheduled_date|date:"M d" }} {{ b.scheduled_time|time:"H:i" }}</td><td><span class="badge {% if b.status == 'RESULT_READY' %}badge-success{% elif b.status == 'BOOKED' %}badge-warning{% elif b.status == 'CANCELLED' %}badge-danger{% else %}badge-info{% endif %}">{{ b.get_status_display }}</span></td>
+      <td>{% if b.result %}<span style="font-size:0.8125rem;">{{ b.result.result_summary|truncatewords:10 }}</span>{% else %}—{% endif %}</td>
+      <td style="white-space:nowrap;">
+        {% if b.status != 'CANCELLED' and b.status != 'RESULT_READY' %}
+        <form method="POST" style="display:inline;">{% csrf_token %}<input type="hidden" name="booking_id" value="{{ b.id }}">
+          <select name="status" onchange="this.form.action.value='change_status';this.form.submit()" style="width:auto;font-size:0.75rem;padding:2px 6px;">
+            <option value="">Change…</option>{% for k,v in statuses %}<option value="{{ k }}">{{ v }}</option>{% endfor %}
+          </select>
+          <input type="hidden" name="action" value="change_status">
+        </form>
+        <details style="display:inline-block;margin-left:4px;">
+          <summary class="btn btn-sm btn-success" style="cursor:pointer;font-size:0.75rem;">Release Result</summary>
+          <form method="POST" style="position:absolute;background:var(--color-surface);border:1px solid var(--color-border);padding:8px;border-radius:var(--radius-sm);z-index:10;margin-top:4px;min-width:240px;">
+            {% csrf_token %}<input type="hidden" name="booking_id" value="{{ b.id }}"><input type="hidden" name="action" value="release_result">
+            <textarea name="result_summary" rows="2" placeholder="Result summary..." style="width:100%;font-size:0.8125rem;" required></textarea>
+            <button type="submit" class="btn btn-sm btn-primary" style="margin-top:4px;">Release</button>
+          </form>
+        </details>
+        {% endif %}
+      </td></tr>{% empty %}<tr><td colspan="6"><div class="empty-state" style="padding:24px;"><p>No bookings found.</p></div></td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% include "core/admin/_pagination.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Lab Tests{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Lab Tests</h1>
+    <p>Test catalog and booking management.</p>
+  </div>
+  <a href="{% url 'lab_book_test' %}" class="btn btn-primary">+ Book Test</a>
+</div>
+
+<div class="section-grid section-grid-2">
+  <div class="card">
+    <div class="card-header">
+      <h3>Available Tests</h3>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Test Name</th>
+            <th style="text-align:right;">Price</th>
+            <th>Turnaround</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for test in lab_tests %}
+          <tr>
+            <td>
+              <strong>{{ test.name }}</strong>
+              {% if test.description %}
+              <div style="font-size:0.75rem;color:var(--color-text-muted);">{{ test.description|truncatewords:15 }}</div>
+              {% endif %}
+            </td>
+            <td style="text-align:right;font-family:var(--font-mono);font-weight:600;">${{ test.price }}</td>
+            <td><span class="badge badge-neutral">{{ test.turnaround_time_hours }}h</span></td>
+            <td><a href="{% url 'lab_book_test' %}?test={{ test.id }}" class="btn btn-sm btn-outline">Book</a></td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4">
+              <div class="empty-state" style="padding:32px;">
+                <div class="empty-state-icon">◉</div>
+                <h3>No tests available</h3>
+                <p>Lab tests have not been configured yet.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>Recent Bookings</h3>
+      <a href="{% url 'lab_booking_history' %}" class="btn btn-sm btn-ghost">View all →</a>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Test</th>
+            <th>Scheduled</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for booking in recent_bookings %}
+          <tr>
+            <td>{{ booking.lab_test.name }}</td>
+            <td style="font-size:0.8125rem;">{{ booking.scheduled_date|date:"M d" }} {{ booking.scheduled_time|time:"H:i" }}</td>
+            <td>
+              <span class="badge
+                {% if booking.status == 'RESULT_READY' %}badge-success
+                {% elif booking.status == 'BOOKED' %}badge-warning
+                {% elif booking.status == 'IN_PROGRESS' %}badge-info
+                {% elif booking.status == 'CANCELLED' %}badge-danger
+                {% else %}badge-neutral{% endif %}">
+                {{ booking.get_status_display }}
+              </span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3">
+              <div class="empty-state" style="padding:24px;">
+                <p>No bookings yet.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

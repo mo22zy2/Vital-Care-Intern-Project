@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — VitalCare Hospital</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+</head>
+<body class="auth-page">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="auth-brand-icon">V</div>
+        <div>
+          <div style="font-family:'Inter Tight',sans-serif;font-weight:700;font-size:1.125rem;letter-spacing:-0.02em;color:#1A2A36;">VitalCare</div>
+          <div style="font-size:0.7rem;color:#94A3A8;letter-spacing:0.05em;text-transform:uppercase;">Hospital Management</div>
+        </div>
+      </div>
+      <h2 class="auth-title">Welcome back</h2>
+      <p class="auth-subtitle">Sign in to access your hospital dashboard.</p>
+
+      {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="{% url 'account_login' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="email">Email or Phone</label>
+          <input class="form-input" type="text" id="email" name="email" placeholder="email@hospital.com or +1 234 567 890" required autofocus>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-input" type="password" id="password" name="password" placeholder="••••••••" required>
+        </div>
+        <div class="form-actions" style="flex-direction:column;gap:12px;">
+          <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">Sign In</button>
+        </div>
+      </form>
+      <div class="auth-link">
+        Don't have an account? <a href="{% url 'account_register' %}">Create one</a>
+      </div>
+    </div>
+  </div>
+  <script src="{% static 'core/js/main.js' %}"></script>
+</body>
+</html>
