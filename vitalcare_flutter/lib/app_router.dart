@@ -10,6 +10,10 @@ import 'features/doctors/screens/doctor_detail_screen.dart';
 import 'features/appointments/screens/appointments_list_screen.dart';
 import 'features/appointments/screens/book_appointment_screen.dart';
 import 'features/appointments/screens/cancel_appointment_screen.dart';
+import 'features/pharmacy/screens/medicines_screen.dart';
+import 'features/pharmacy/screens/create_order_screen.dart';
+import 'features/pharmacy/screens/order_history_screen.dart';
+import 'features/pharmacy/screens/order_detail_screen.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/login',
@@ -42,7 +46,13 @@ final GoRouter router = GoRouter(
           final extra = state.extra as Map<String, dynamic>?;
           return CancelAppointmentScreen(appointment: extra ?? {});
         }),
-        GoRoute(path: '/pharmacy', builder: (_, _a) => _placeholder('Pharmacy')),
+        GoRoute(path: '/pharmacy', builder: (_, _a) => const MedicinesScreen()),
+        GoRoute(path: '/pharmacy/order/create', builder: (_, _a) => const CreateOrderScreen()),
+        GoRoute(path: '/pharmacy/orders', builder: (_, _a) => const OrderHistoryScreen()),
+        GoRoute(path: '/pharmacy/order/:id', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return OrderDetailScreen(order: extra ?? {});
+        }),
         GoRoute(path: '/billing', builder: (_, _a) => _placeholder('Billing')),
         GoRoute(path: '/laboratory', builder: (_, _a) => _placeholder('Lab Tests')),
         GoRoute(path: '/medical-records', builder: (_, _a) => _placeholder('Medical Records')),
