@@ -4,6 +4,8 @@ import 'app_router.dart';
 import 'core/network/api_client.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
+import 'features/dashboard/providers/dashboard_provider.dart';
+import 'features/doctors/providers/doctors_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,8 +18,12 @@ class VitalCareApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => DoctorsProvider()),
+      ],
       child: MaterialApp.router(
         title: 'VitalCare',
         debugShowCheckedModeBanner: false,

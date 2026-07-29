@@ -5,6 +5,8 @@ import 'core/widgets/app_shell.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
+import 'features/doctors/screens/doctors_list_screen.dart';
+import 'features/doctors/screens/doctor_detail_screen.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/login',
@@ -23,8 +25,13 @@ final GoRouter router = GoRouter(
       builder: (_, _a, child) => AppShell(child: child),
       routes: [
         GoRoute(path: '/dashboard', builder: (_, _a) => const DashboardScreen()),
-        GoRoute(path: '/doctors', builder: (_, _a) => _placeholder('Doctors')),
+        GoRoute(path: '/doctors', builder: (_, _a) => const DoctorsListScreen()),
+        GoRoute(path: '/doctors/:id', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return DoctorDetailScreen(doctor: extra ?? {});
+        }),
         GoRoute(path: '/appointments', builder: (_, _a) => _placeholder('Appointments')),
+        GoRoute(path: '/appointments/book', builder: (_, _a) => _placeholder('Book Appointment')),
         GoRoute(path: '/pharmacy', builder: (_, _a) => _placeholder('Pharmacy')),
         GoRoute(path: '/billing', builder: (_, _a) => _placeholder('Billing')),
         GoRoute(path: '/laboratory', builder: (_, _a) => _placeholder('Lab Tests')),
