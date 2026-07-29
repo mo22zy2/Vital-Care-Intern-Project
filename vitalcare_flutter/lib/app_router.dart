@@ -16,6 +16,14 @@ import 'features/pharmacy/screens/order_history_screen.dart';
 import 'features/pharmacy/screens/order_detail_screen.dart';
 import 'features/laboratory/screens/tests_screen.dart';
 import 'features/laboratory/screens/book_test_screen.dart';
+import 'features/billing/screens/invoices_screen.dart';
+import 'features/medical_records/screens/records_list_screen.dart';
+import 'features/prescriptions/screens/prescriptions_list_screen.dart';
+import 'features/notifications/screens/notifications_list_screen.dart';
+import 'features/timeline/screens/timeline_screen.dart';
+import 'features/profile/screens/profile_screen.dart';
+import 'features/feedback/screens/feedback_screen.dart';
+import 'features/search/screens/search_screen.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/login',
@@ -55,19 +63,19 @@ final GoRouter router = GoRouter(
           final extra = state.extra as Map<String, dynamic>?;
           return OrderDetailScreen(order: extra ?? {});
         }),
-        GoRoute(path: '/billing', builder: (_, _a) => _placeholder('Billing')),
         GoRoute(path: '/laboratory', builder: (_, _a) => const TestsScreen()),
         GoRoute(path: '/laboratory/book', builder: (_, state) {
           final extra = state.extra as Map<String, dynamic>?;
           return BookTestScreen(preselectedTest: extra);
         }),
-        GoRoute(path: '/medical-records', builder: (_, _a) => _placeholder('Medical Records')),
-        GoRoute(path: '/prescriptions', builder: (_, _a) => _placeholder('Prescriptions')),
-        GoRoute(path: '/notifications', builder: (_, _a) => _placeholder('Notifications')),
-        GoRoute(path: '/timeline', builder: (_, _a) => _placeholder('Timeline')),
-        GoRoute(path: '/feedback', builder: (_, _a) => _placeholder('Feedback')),
-        GoRoute(path: '/profile', builder: (_, _a) => _placeholder('Profile')),
-        GoRoute(path: '/search', builder: (_, state) => _placeholder('Search: ${state.extra ?? ""}')),
+        GoRoute(path: '/billing', builder: (_, _a) => const InvoicesScreen()),
+        GoRoute(path: '/medical-records', builder: (_, _a) => const MedicalRecordsScreen()),
+        GoRoute(path: '/prescriptions', builder: (_, _a) => const PrescriptionsScreen()),
+        GoRoute(path: '/notifications', builder: (_, _a) => const NotificationsScreen()),
+        GoRoute(path: '/timeline', builder: (_, _a) => const TimelineScreen()),
+        GoRoute(path: '/feedback', builder: (_, _a) => const FeedbackScreen()),
+        GoRoute(path: '/profile', builder: (_, _a) => const ProfileScreen()),
+        GoRoute(path: '/search', builder: (_, state) => SearchScreen(initialQuery: state.extra?.toString() ?? '')),
         GoRoute(path: '/doctor/dashboard', builder: (_, _a) => _placeholder('Doctor Dashboard')),
         GoRoute(path: '/doctor/appointments', builder: (_, _a) => _placeholder('Doctor Appointments')),
         GoRoute(path: '/doctor/availability', builder: (_, _a) => _placeholder('Availability')),

@@ -9,6 +9,13 @@ import 'features/doctors/providers/doctors_provider.dart';
 import 'features/appointments/providers/appointments_provider.dart';
 import 'features/pharmacy/providers/pharmacy_provider.dart';
 import 'features/laboratory/providers/laboratory_provider.dart';
+import 'features/billing/providers/billing_provider.dart';
+import 'features/medical_records/providers/medical_records_provider.dart';
+import 'features/prescriptions/providers/prescriptions_provider.dart';
+import 'features/notifications/providers/notifications_provider.dart';
+import 'features/timeline/providers/timeline_provider.dart';
+import 'features/profile/providers/profile_provider.dart';
+import 'features/feedback/providers/feedback_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +36,13 @@ class VitalCareApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AppointmentsProvider()),
         ChangeNotifierProvider(create: (_) => PharmacyProvider()),
         ChangeNotifierProvider(create: (_) => LaboratoryProvider()),
+        ChangeNotifierProvider(create: (_) => BillingProvider()),
+        ChangeNotifierProvider(create: (_) => MedicalRecordsProvider()),
+        ChangeNotifierProvider(create: (_) => PrescriptionsProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationsProvider()),
+        ChangeNotifierProvider(create: (_) => TimelineProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => FeedbackProvider()),
       ],
       child: MaterialApp.router(
         title: 'VitalCare',
