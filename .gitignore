@@ -34,3 +34,17 @@ staticfiles/
 # OS
 .DS_Store
 Thumbs.db
+
+# Flutter
+vitalcare_flutter/.dart_tool/
+vitalcare_flutter/build/
+vitalcare_flutter/.flutter-plugins
+vitalcare_flutter/.flutter-plugins-dependencies
+vitalcare_flutter/android/.gradle/
+vitalcare_flutter/android/local.properties
+vitalcare_flutter/ios/Pods/
+vitalcare_flutter/ios/.symlinks/
+vitalcare_flutter/linux/flutter/ephemeral/
+vitalcare_flutter/macos/flutter/ephemeral/
+vitalcare_flutter/web/icons/
+vitalcare_flutter/windows/flutter/ephemeral/
