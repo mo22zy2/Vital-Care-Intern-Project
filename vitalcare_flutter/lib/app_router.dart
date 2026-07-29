@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'core/network/api_client.dart';
 import 'core/widgets/app_shell.dart';
@@ -24,6 +23,22 @@ import 'features/timeline/screens/timeline_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
 import 'features/feedback/screens/feedback_screen.dart';
 import 'features/search/screens/search_screen.dart';
+import 'features/doctor/screens/doctor_dashboard_screen.dart';
+import 'features/doctor/screens/doctor_appointments_screen.dart';
+import 'features/doctor/screens/doctor_availability_screen.dart';
+import 'features/doctor/screens/write_prescription_screen.dart';
+import 'features/pharmacist/screens/pharmacist_dashboard_screen.dart';
+import 'features/labtech/screens/labtech_dashboard_screen.dart';
+import 'features/admin/screens/admin_dashboard_screen.dart';
+import 'features/admin/screens/admin_users_screen.dart';
+import 'features/admin/screens/admin_appointments_screen.dart';
+import 'features/admin/screens/admin_doctors_screen.dart';
+import 'features/admin/screens/admin_medicines_screen.dart';
+import 'features/admin/screens/admin_lab_tests_screen.dart';
+import 'features/admin/screens/admin_invoices_screen.dart';
+import 'features/admin/screens/admin_orders_screen.dart';
+import 'features/admin/screens/admin_feedback_screen.dart';
+import 'features/admin/screens/admin_reports_screen.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/login',
@@ -76,28 +91,25 @@ final GoRouter router = GoRouter(
         GoRoute(path: '/feedback', builder: (_, _a) => const FeedbackScreen()),
         GoRoute(path: '/profile', builder: (_, _a) => const ProfileScreen()),
         GoRoute(path: '/search', builder: (_, state) => SearchScreen(initialQuery: state.extra?.toString() ?? '')),
-        GoRoute(path: '/doctor/dashboard', builder: (_, _a) => _placeholder('Doctor Dashboard')),
-        GoRoute(path: '/doctor/appointments', builder: (_, _a) => _placeholder('Doctor Appointments')),
-        GoRoute(path: '/doctor/availability', builder: (_, _a) => _placeholder('Availability')),
-        GoRoute(path: '/pharmacist/dashboard', builder: (_, _a) => _placeholder('Pharmacist Dashboard')),
-        GoRoute(path: '/labtech/dashboard', builder: (_, _a) => _placeholder('Lab Tech Dashboard')),
-        GoRoute(path: '/admin/dashboard', builder: (_, _a) => _placeholder('Admin Dashboard')),
-        GoRoute(path: '/admin/users', builder: (_, _a) => _placeholder('Admin Users')),
-        GoRoute(path: '/admin/appointments', builder: (_, _a) => _placeholder('Admin Appointments')),
-        GoRoute(path: '/admin/doctors', builder: (_, _a) => _placeholder('Admin Doctors')),
-        GoRoute(path: '/admin/medicines', builder: (_, _a) => _placeholder('Admin Medicines')),
-        GoRoute(path: '/admin/lab-tests', builder: (_, _a) => _placeholder('Admin Lab Tests')),
-        GoRoute(path: '/admin/invoices', builder: (_, _a) => _placeholder('Admin Invoices')),
-        GoRoute(path: '/admin/pharmacy-orders', builder: (_, _a) => _placeholder('Admin Orders')),
-        GoRoute(path: '/admin/feedback', builder: (_, _a) => _placeholder('Admin Feedback')),
-        GoRoute(path: '/admin/reports', builder: (_, _a) => _placeholder('Admin Reports')),
+        GoRoute(path: '/doctor/dashboard', builder: (_, _a) => const DoctorDashboardScreen()),
+        GoRoute(path: '/doctor/appointments', builder: (_, _a) => const DoctorAppointmentsScreen()),
+        GoRoute(path: '/doctor/availability', builder: (_, _a) => const DoctorAvailabilityScreen()),
+        GoRoute(path: '/doctor/prescription', builder: (_, _a) => const WritePrescriptionScreen()),
+        GoRoute(path: '/pharmacist/dashboard', builder: (_, _a) => const PharmacistDashboardScreen()),
+        GoRoute(path: '/labtech/dashboard', builder: (_, _a) => const LabtechDashboardScreen()),
+        GoRoute(path: '/admin/dashboard', builder: (_, _a) => const AdminDashboardScreen()),
+        GoRoute(path: '/admin/users', builder: (_, _a) => const AdminUsersScreen()),
+        GoRoute(path: '/admin/appointments', builder: (_, _a) => const AdminAppointmentsScreen()),
+        GoRoute(path: '/admin/doctors', builder: (_, _a) => const AdminDoctorsScreen()),
+        GoRoute(path: '/admin/medicines', builder: (_, _a) => const AdminMedicinesScreen()),
+        GoRoute(path: '/admin/lab-tests', builder: (_, _a) => const AdminLabTestsScreen()),
+        GoRoute(path: '/admin/invoices', builder: (_, _a) => const AdminInvoicesScreen()),
+        GoRoute(path: '/admin/pharmacy-orders', builder: (_, _a) => const AdminOrdersScreen()),
+        GoRoute(path: '/admin/feedback', builder: (_, _a) => const AdminFeedbackScreen()),
+        GoRoute(path: '/admin/reports', builder: (_, _a) => const AdminReportsScreen()),
       ],
     ),
   ],
 );
 
-Widget _placeholder(String label) {
-  return Center(
-    child: Text(label, style: const TextStyle(fontSize: 18, color: Colors.grey)),
-  );
-}
+
