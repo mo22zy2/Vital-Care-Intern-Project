@@ -14,6 +14,8 @@ import 'features/pharmacy/screens/medicines_screen.dart';
 import 'features/pharmacy/screens/create_order_screen.dart';
 import 'features/pharmacy/screens/order_history_screen.dart';
 import 'features/pharmacy/screens/order_detail_screen.dart';
+import 'features/laboratory/screens/tests_screen.dart';
+import 'features/laboratory/screens/book_test_screen.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/login',
@@ -54,7 +56,11 @@ final GoRouter router = GoRouter(
           return OrderDetailScreen(order: extra ?? {});
         }),
         GoRoute(path: '/billing', builder: (_, _a) => _placeholder('Billing')),
-        GoRoute(path: '/laboratory', builder: (_, _a) => _placeholder('Lab Tests')),
+        GoRoute(path: '/laboratory', builder: (_, _a) => const TestsScreen()),
+        GoRoute(path: '/laboratory/book', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return BookTestScreen(preselectedTest: extra);
+        }),
         GoRoute(path: '/medical-records', builder: (_, _a) => _placeholder('Medical Records')),
         GoRoute(path: '/prescriptions', builder: (_, _a) => _placeholder('Prescriptions')),
         GoRoute(path: '/notifications', builder: (_, _a) => _placeholder('Notifications')),
