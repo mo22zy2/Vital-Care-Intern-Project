@@ -19,7 +19,6 @@ import 'features/feedback/providers/feedback_provider.dart';
 import 'features/doctor/providers/doctor_provider.dart';
 import 'features/pharmacist/providers/pharmacist_provider.dart';
 import 'features/labtech/providers/labtech_provider.dart';
-import 'features/admin/providers/admin_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,7 +49,6 @@ class VitalCareApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DoctorProvider()),
         ChangeNotifierProvider(create: (_) => PharmacistProvider()),
         ChangeNotifierProvider(create: (_) => LabtechProvider()),
-        ChangeNotifierProvider(create: (_) => AdminProvider()),
       ],
       child: MaterialApp.router(
         title: 'VitalCare',

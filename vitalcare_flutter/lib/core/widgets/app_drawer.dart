@@ -72,20 +72,6 @@ class AppDrawer extends StatelessWidget {
                     _sectionHeader('Lab Panel'),
                     _navItem(context, Icons.dashboard, 'Dashboard', '/labtech/dashboard'),
                   ],
-                  if (role == 'ADMIN' || role == 'STAFF') ...[
-                    const Divider(color: Colors.white24, height: 1),
-                    _sectionHeader('Administration'),
-                    _navItem(context, Icons.dashboard, 'Dashboard', '/admin/dashboard'),
-                    _navItem(context, Icons.people, 'Users', '/admin/users'),
-                    _navItem(context, Icons.calendar_month, 'Appointments', '/admin/appointments'),
-                    _navItem(context, Icons.medical_services, 'Doctors', '/admin/doctors'),
-                    _navItem(context, Icons.medication, 'Medicines', '/admin/medicines'),
-                    _navItem(context, Icons.science, 'Lab Tests', '/admin/lab-tests'),
-                    _navItem(context, Icons.receipt, 'Invoices', '/admin/invoices'),
-                    _navItem(context, Icons.inventory, 'Orders', '/admin/pharmacy-orders'),
-                    _navItem(context, Icons.feedback, 'Feedback', '/admin/feedback'),
-                    _navItem(context, Icons.assessment, 'Reports', '/admin/reports'),
-                  ],
                 ],
               ),
             ),
@@ -136,7 +122,9 @@ class AppDrawer extends StatelessWidget {
         color: active ? Colors.white.withValues(alpha: 0.1) : null,
         border: active ? const Border(left: BorderSide(color: AppColors.accent, width: 3)) : null,
       ),
-      child: ListTile(
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
         leading: Icon(icon, color: active ? Colors.white : Colors.white60, size: 20),
         title: Text(label, style: TextStyle(
           color: active ? Colors.white : Colors.white70,
@@ -148,6 +136,7 @@ class AppDrawer extends StatelessWidget {
           Navigator.pop(context);
           context.go(route);
         },
+      ),
       ),
     );
   }

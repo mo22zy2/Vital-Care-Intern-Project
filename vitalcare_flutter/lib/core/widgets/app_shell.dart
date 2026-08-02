@@ -41,16 +41,6 @@ class AppShell extends StatelessWidget {
     if (uri.startsWith('/doctor')) return 'Doctor Panel';
     if (uri.startsWith('/pharmacist')) return 'Pharmacy Panel';
     if (uri.startsWith('/labtech')) return 'Lab Panel';
-    if (uri.startsWith('/admin/dashboard')) return 'Admin Dashboard';
-    if (uri.startsWith('/admin/users')) return 'Users';
-    if (uri.startsWith('/admin/appointments')) return 'Appointments';
-    if (uri.startsWith('/admin/doctors')) return 'Doctors';
-    if (uri.startsWith('/admin/medicines')) return 'Medicines';
-    if (uri.startsWith('/admin/lab-tests')) return 'Lab Tests';
-    if (uri.startsWith('/admin/invoices')) return 'Invoices';
-    if (uri.startsWith('/admin/pharmacy-orders')) return 'Pharmacy Orders';
-    if (uri.startsWith('/admin/feedback')) return 'Feedback';
-    if (uri.startsWith('/admin/reports')) return 'Reports';
     return 'VitalCare';
   }
 }

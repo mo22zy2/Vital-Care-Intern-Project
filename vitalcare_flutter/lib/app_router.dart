@@ -29,16 +29,6 @@ import 'features/doctor/screens/doctor_availability_screen.dart';
 import 'features/doctor/screens/write_prescription_screen.dart';
 import 'features/pharmacist/screens/pharmacist_dashboard_screen.dart';
 import 'features/labtech/screens/labtech_dashboard_screen.dart';
-import 'features/admin/screens/admin_dashboard_screen.dart';
-import 'features/admin/screens/admin_users_screen.dart';
-import 'features/admin/screens/admin_appointments_screen.dart';
-import 'features/admin/screens/admin_doctors_screen.dart';
-import 'features/admin/screens/admin_medicines_screen.dart';
-import 'features/admin/screens/admin_lab_tests_screen.dart';
-import 'features/admin/screens/admin_invoices_screen.dart';
-import 'features/admin/screens/admin_orders_screen.dart';
-import 'features/admin/screens/admin_feedback_screen.dart';
-import 'features/admin/screens/admin_reports_screen.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/login',
@@ -97,16 +87,6 @@ final GoRouter router = GoRouter(
         GoRoute(path: '/doctor/prescription', builder: (_, _a) => const WritePrescriptionScreen()),
         GoRoute(path: '/pharmacist/dashboard', builder: (_, _a) => const PharmacistDashboardScreen()),
         GoRoute(path: '/labtech/dashboard', builder: (_, _a) => const LabtechDashboardScreen()),
-        GoRoute(path: '/admin/dashboard', builder: (_, _a) => const AdminDashboardScreen()),
-        GoRoute(path: '/admin/users', builder: (_, _a) => const AdminUsersScreen()),
-        GoRoute(path: '/admin/appointments', builder: (_, _a) => const AdminAppointmentsScreen()),
-        GoRoute(path: '/admin/doctors', builder: (_, _a) => const AdminDoctorsScreen()),
-        GoRoute(path: '/admin/medicines', builder: (_, _a) => const AdminMedicinesScreen()),
-        GoRoute(path: '/admin/lab-tests', builder: (_, _a) => const AdminLabTestsScreen()),
-        GoRoute(path: '/admin/invoices', builder: (_, _a) => const AdminInvoicesScreen()),
-        GoRoute(path: '/admin/pharmacy-orders', builder: (_, _a) => const AdminOrdersScreen()),
-        GoRoute(path: '/admin/feedback', builder: (_, _a) => const AdminFeedbackScreen()),
-        GoRoute(path: '/admin/reports', builder: (_, _a) => const AdminReportsScreen()),
       ],
     ),
   ],

@@ -39,7 +39,7 @@ class _SearchScreenState extends State<SearchScreen> {
     try {
       final res = await ApiClient.get('${ApiConstants.search}?q=$q');
       setState(() {
-        _results = (res['data'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        _results = (res['results'] as List?)?.cast<Map<String, dynamic>>() ?? [];
         _loading = false;
       });
     } catch (_) {
@@ -116,15 +116,13 @@ class _SearchScreenState extends State<SearchScreen> {
     final id = r['id']?.toString() ?? '';
     final extra = r;
     switch (type) {
-      case 'DOCTOR':
+      case 'doctor':
         context.push('/doctors/$id', extra: extra);
-      case 'MEDICINE':
+      case 'medicine':
         context.push('/pharmacy');
-      case 'LAB_TEST':
+      case 'lab_test':
         context.push('/laboratory');
-      case 'USER':
-        context.push('/admin/users');
-      case 'INVOICE':
+      case 'invoice':
         context.push('/billing');
       default:
         context.push('/search', extra: _ctl.text);
