@@ -1,13 +1,14 @@
 from datetime import date, datetime
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from django.contrib.auth import get_user_model
 from django.db.models import Sum, Count
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
 from api.deps import get_current_user
+from core.telegram import send_telegram
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 User = get_user_model()
@@ -161,6 +162,76 @@ def admin_toggle_user_active(user_id: str, admin=Depends(require_admin)):
     return {"message": f"User {'activated' if user.is_active else 'deactivated'}"}
 
 
+class UserCreateBody(BaseModel):
+    first_name: str = ""
+    last_name: str = ""
+    email: str
+    phone: str = ""
+    password: str
+    role: str = "PATIENT"
+
+
+@router.post("/users", status_code=201)
+def admin_create_user(body: UserCreateBody, admin=Depends(require_admin)):
+    if User.objects.filter(email=body.email).exists():
+        raise HTTPException(status_code=400, detail="Email already in use.")
+    if body.phone and User.objects.filter(phone=body.phone).exists():
+        raise HTTPException(status_code=400, detail="Phone already in use.")
+    if len(body.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if body.role not in dict(User.Role.choices):
+        raise HTTPException(status_code=400, detail="Invalid role")
+
+    user = User.objects.create_user(
+        username=body.email.split("@")[0],
+        email=body.email,
+        password=body.password,
+        first_name=body.first_name,
+        last_name=body.last_name,
+        phone=body.phone or body.email.split("@")[0],
+        role=body.role,
+    )
+    send_telegram(f"🆕 Admin created user (API): {body.email} (role: {body.role})")
+    return {"message": "User created", "id": str(user.id)}
+
+
+class UserUpdateBody(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    phone: str | None = None
+    role: str | None = None
+
+
+@router.patch("/users/{user_id}")
+def admin_update_user(user_id: str, body: UserUpdateBody, admin=Depends(require_admin)):
+    user = User.objects.filter(id=user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if body.role is not None:
+        if body.role not in dict(User.Role.choices):
+            raise HTTPException(status_code=400, detail="Invalid role")
+        user.role = body.role
+    if body.first_name is not None:
+        user.first_name = body.first_name
+    if body.last_name is not None:
+        user.last_name = body.last_name
+    if body.phone is not None:
+        user.phone = body.phone
+    user.save()
+    return {"message": "User updated"}
+
+
+@router.delete("/users/{user_id}")
+def admin_delete_user(user_id: str, admin=Depends(require_admin)):
+    user = User.objects.filter(id=user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.id == admin.id:
+        raise HTTPException(status_code=400, detail="You cannot delete your own account")
+    user.delete()
+    return {"message": "User deleted"}
+
+
 @router.get("/appointments", response_model=list[AppointmentOut])
 def admin_appointments(
     q: str = "",
@@ -273,6 +344,101 @@ def admin_toggle_doctor_account(doctor_id: str, admin=Depends(require_admin)):
     doctor.user.is_active = not doctor.user.is_active
     doctor.user.save()
     return {"message": f"Account {'unlocked' if doctor.user.is_active else 'locked'}"}
+
+
+class DoctorCreateBody(BaseModel):
+    first_name: str = ""
+    last_name: str = ""
+    email: str
+    password: str = Field(min_length=8)
+    license_number: str = ""
+    specialties: list[str] = []
+    consultation_fee: float = Field(default=0, ge=0)
+    years_of_experience: int = Field(default=0, ge=0, le=70)
+    office_location: str = ""
+    bio: str = ""
+
+
+@router.post("/doctors", status_code=201)
+def admin_create_doctor(body: DoctorCreateBody, admin=Depends(require_admin)):
+    from core.models.doctors.models import Doctor, Specialty
+
+    if User.objects.filter(email=body.email).exists():
+        raise HTTPException(status_code=400, detail="Email already in use.")
+    if not body.email or not body.password:
+        raise HTTPException(status_code=400, detail="Email and password are required")
+    if len(body.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if Doctor.objects.filter(license_number=body.license_number).exists():
+        raise HTTPException(status_code=400, detail="License number already in use")
+
+    user = User.objects.create_user(
+        username=body.email.split("@")[0],
+        email=body.email,
+        password=body.password,
+        first_name=body.first_name,
+        last_name=body.last_name,
+        phone=body.email.split("@")[0],
+        role="DOCTOR",
+    )
+    doctor = Doctor.objects.create(
+        user=user,
+        license_number=body.license_number or f"LIC-{user.id.hex[:8]}",
+        years_of_experience=body.years_of_experience,
+        consultation_fee=body.consultation_fee,
+        office_location=body.office_location,
+        bio=body.bio,
+    )
+    for name in body.specialties:
+        spec, _ = Specialty.objects.get_or_create(name=name)
+        doctor.specialties.add(spec)
+    send_telegram(f"🆕 Admin created doctor (API): {body.email}")
+    return {"message": "Doctor created", "id": str(doctor.id)}
+
+
+class DoctorUpdateBody(BaseModel):
+    consultation_fee: float | None = Field(default=None, ge=0)
+    office_location: str | None = None
+    bio: str | None = None
+    years_of_experience: int | None = Field(default=None, ge=0, le=70)
+    specialties: list[str] | None = None
+
+
+@router.patch("/doctors/{doctor_id}")
+def admin_update_doctor(doctor_id: str, body: DoctorUpdateBody, admin=Depends(require_admin)):
+    from core.models.doctors.models import Doctor, Specialty
+
+    doctor = Doctor.objects.filter(id=doctor_id).first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+    if body.consultation_fee is not None:
+        doctor.consultation_fee = body.consultation_fee
+    if body.office_location is not None:
+        doctor.office_location = body.office_location
+    if body.bio is not None:
+        doctor.bio = body.bio
+    if body.years_of_experience is not None:
+        doctor.years_of_experience = body.years_of_experience
+    if body.specialties is not None:
+        doctor.specialties.clear()
+        for name in body.specialties:
+            spec, _ = Specialty.objects.get_or_create(name=name)
+            doctor.specialties.add(spec)
+    doctor.save()
+    return {"message": "Doctor updated"}
+
+
+@router.delete("/doctors/{doctor_id}")
+def admin_delete_doctor(doctor_id: str, admin=Depends(require_admin)):
+    from core.models.doctors.models import Doctor
+
+    doctor = Doctor.objects.filter(id=doctor_id).first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+    user = doctor.user
+    doctor.delete()
+    user.delete()
+    return {"message": "Doctor deleted"}
 
 
 @router.get("/feedback", response_model=list[FeedbackOut])
@@ -402,8 +568,8 @@ class MedicineCreate(BaseModel):
     generic_name: str = ""
     dosage_form: str = ""
     strength: str = ""
-    price: float = 0
-    stock_quantity: int = 0
+    price: float = Field(default=0, ge=0)
+    stock_quantity: int = Field(default=0, ge=0)
     requires_prescription: bool = True
 
 
@@ -412,8 +578,8 @@ class MedicineUpdate(BaseModel):
     generic_name: str | None = None
     dosage_form: str | None = None
     strength: str | None = None
-    price: float | None = None
-    stock_quantity: int | None = None
+    price: float | None = Field(default=None, ge=0)
+    stock_quantity: int | None = Field(default=None, ge=0)
     requires_prescription: bool | None = None
 
 
@@ -534,14 +700,14 @@ class LabTestCreate(BaseModel):
     name: str
     category: str = ""
     description: str = ""
-    price: float = 0
+    price: float = Field(default=0, ge=0)
 
 
 class LabTestUpdate(BaseModel):
     name: str | None = None
     category: str | None = None
     description: str | None = None
-    price: float | None = None
+    price: float | None = Field(default=None, ge=0)
     is_active: bool | None = None
 
 

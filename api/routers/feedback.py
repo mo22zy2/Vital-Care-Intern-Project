@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from api.deps import get_current_user
+from api.validators import rating_1_to_5
 from core.models.feedback.models import Feedback
 from core.telegram import send_telegram
 
@@ -28,6 +29,8 @@ class FeedbackCreate(BaseModel):
     rating: int
     comment: str = ""
     is_anonymous: bool = False
+
+    _rating = field_validator("rating")(rating_1_to_5)
 
 
 @router.get("", response_model=list[FeedbackOut])

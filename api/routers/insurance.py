@@ -1,9 +1,10 @@
 from datetime import date
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, model_validator
 
 from api.deps import get_current_user
+from api.validators import coverage_percentage as validate_coverage, positive
 from core.models.insurance.models import HealthInsurance, InsuranceClaim, InsuranceProvider
 
 router = APIRouter(prefix="/insurance", tags=["insurance"])
@@ -43,6 +44,14 @@ class PolicyCreate(BaseModel):
     valid_from: date
     valid_to: date
 
+    _coverage = field_validator("coverage_percentage")(validate_coverage)
+
+    @model_validator(mode="after")
+    def validate_dates(self):
+        if self.valid_to <= self.valid_from:
+            raise ValueError("Policy end date must be after start date")
+        return self
+
 
 class ClaimOut(BaseModel):
     id: str
@@ -63,6 +72,8 @@ class ClaimCreate(BaseModel):
     invoice_id: str
     claim_amount: Decimal
     notes: str = ""
+
+    _claim_amount = field_validator("claim_amount")(positive)
 
 
 @router.get("/providers", response_model=list[ProviderOut])

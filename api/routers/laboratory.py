@@ -1,9 +1,10 @@
 from decimal import Decimal
 from datetime import date, time, datetime
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, model_validator
 
 from api.deps import get_current_user
+from api.validators import not_in_past, future_slot
 from core.models.laboratory.models import LabTest, LabTestBooking, LabTestResult
 from core.notify import notify_test_result_available
 
@@ -42,6 +43,13 @@ class BookingCreate(BaseModel):
     lab_test_id: str
     scheduled_date: date
     scheduled_time: time
+
+    _not_in_past = field_validator("scheduled_date")(not_in_past)
+
+    @model_validator(mode="after")
+    def validate_slot(self):
+        future_slot(self.scheduled_date, self.scheduled_time)
+        return self
 
 
 class BookingOut(BaseModel):

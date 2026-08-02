@@ -1,8 +1,12 @@
+from datetime import date, datetime
+
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field, field_validator
 from django.contrib.auth import get_user_model
 from core.supabase_client import get_supabase
 from core.telegram import send_telegram
+from gotrue.errors import AuthApiError
+from api.validators import birthday
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 User = get_user_model()
@@ -10,18 +14,24 @@ User = get_user_model()
 
 class RegisterBody(BaseModel):
     email: str
-    password: str
+    password: str = Field(min_length=8)
     first_name: str = ""
     last_name: str = ""
     phone: str = ""
     address: str = ""
     gender: str = ""
-    date_of_birth: str | None = None
+    date_of_birth: date | None = None
+
+    _birthday = field_validator("date_of_birth")(birthday)
 
 
 class LoginBody(BaseModel):
     email: str
     password: str
+
+
+class RefreshBody(BaseModel):
+    refresh_token: str
 
 
 class AuthOut(BaseModel):
@@ -32,7 +42,10 @@ class AuthOut(BaseModel):
 @router.post("/register", response_model=AuthOut, status_code=201)
 def register(body: RegisterBody):
     supabase = get_supabase()
-    res = supabase.auth.sign_up({"email": body.email, "password": body.password})
+    try:
+        res = supabase.auth.sign_up({"email": body.email, "password": body.password})
+    except AuthApiError as e:
+        raise HTTPException(status_code=400, detail=str(e).split(":")[-1].strip() or "Registration failed")
     if res and res.user:
         user, created = User.objects.get_or_create(
             supabase_uid=res.user.id,
@@ -57,8 +70,7 @@ def register(body: RegisterBody):
             if body.gender:
                 user.gender = body.gender
             if body.date_of_birth:
-                from datetime import datetime
-                user.date_of_birth = datetime.strptime(body.date_of_birth, "%Y-%m-%d").date()
+                user.date_of_birth = body.date_of_birth
             user.save()
             from core.models.accounts.models import UserPreference
             UserPreference.objects.get_or_create(user=user)
@@ -84,8 +96,7 @@ def register(body: RegisterBody):
         if body.gender:
             user.gender = body.gender
         if body.date_of_birth:
-            from datetime import datetime
-            user.date_of_birth = datetime.strptime(body.date_of_birth, "%Y-%m-%d").date()
+            user.date_of_birth = body.date_of_birth
         user.save()
         from core.models.accounts.models import UserPreference
         UserPreference.objects.get_or_create(user=user)
@@ -99,12 +110,41 @@ def register(body: RegisterBody):
     raise HTTPException(status_code=400, detail="Registration failed")
 
 
+@router.post("/refresh", response_model=AuthOut)
+def refresh(body: RefreshBody):
+    supabase = get_supabase()
+    try:
+        res = supabase.auth.refresh_session(body.refresh_token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+    if not res or not res.session:
+        raise HTTPException(status_code=401, detail="Refresh failed")
+    try:
+        user = User.objects.get(supabase_uid=res.user.id)
+    except User.DoesNotExist:
+        user = None
+    return AuthOut(
+        user={
+            "id": str(user.id) if user else "",
+            "email": user.email if user else (res.user.email or ""),
+            "role": user.role if user else "PATIENT",
+            "first_name": user.first_name if user else "",
+            "last_name": user.last_name if user else "",
+            "phone": user.phone if user else "",
+        },
+        session={"access_token": res.session.access_token, "refresh_token": res.session.refresh_token},
+    )
+
+
 @router.post("/login", response_model=AuthOut)
 def login(body: LoginBody):
     from django.contrib.auth.hashers import check_password
 
-    supabase = get_supabase()
-    res = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
+    try:
+        supabase = get_supabase()
+        res = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
+    except AuthApiError:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     if res and res.user:
         try:
             user = User.objects.get(supabase_uid=res.user.id)

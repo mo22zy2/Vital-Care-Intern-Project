@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta, date
 import random
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from api.deps import get_current_user
+from api.validators import birthday
 from core.models.accounts.models import PasswordResetOTP, UserPreference
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
@@ -35,7 +36,9 @@ class ProfileUpdate(BaseModel):
     phone: str | None = None
     address: str | None = None
     gender: str | None = None
-    date_of_birth: str | None = None
+    date_of_birth: date | None = None
+
+    _birthday = field_validator("date_of_birth")(birthday)
 
 
 @router.get("/me", response_model=ProfileOut)
@@ -59,8 +62,9 @@ def get_profile(user=Depends(get_current_user)):
 def update_profile(body: ProfileUpdate, user=Depends(get_current_user)):
     for field, value in body.dict(exclude_unset=True).items():
         if field == "date_of_birth" and value:
-            value = datetime.strptime(value, "%Y-%m-%d").date()
-        setattr(user, field, value)
+            user.date_of_birth = value
+        elif value is not None or field == "date_of_birth":
+            setattr(user, field, value)
     user.save()
     return ProfileOut(
         id=str(user.id),
@@ -140,15 +144,13 @@ def patient_dashboard(user=Depends(get_current_user)):
 
 class PasswordChange(BaseModel):
     current_password: str
-    new_password: str
+    new_password: str = Field(min_length=8)
 
 
 @router.post("/me/password")
 def change_password(body: PasswordChange, user=Depends(get_current_user)):
     if not user.check_password(body.current_password):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
-    if len(body.new_password) < 8:
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     user.set_password(body.new_password)
     user.save()
     return {"message": "Password changed successfully"}

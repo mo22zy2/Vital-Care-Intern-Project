@@ -1,8 +1,9 @@
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from api.deps import get_current_user
+from api.validators import not_in_future
 from core.models.medical_records.models import PatientRecord, TestResult
 
 router = APIRouter(prefix="/medical-records", tags=["medical_records"])
@@ -39,6 +40,8 @@ class PatientRecordCreate(BaseModel):
     medical_history: str = ""
     diagnosis: str
     treatment_plan: str = ""
+
+    _record_date = field_validator("record_date")(not_in_future)
     notes: str = ""
 
 

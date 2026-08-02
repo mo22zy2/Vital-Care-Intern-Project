@@ -1,10 +1,11 @@
 from datetime import date, datetime, time
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, model_validator
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from api.deps import get_current_user
+from api.validators import not_in_past, future_slot, phone
 from core.models.appointments.models import Appointment
 from core.models.doctors.models import Doctor, DoctorAvailability
 from core.telegram import send_telegram
@@ -24,6 +25,7 @@ class AppointmentOut(BaseModel):
     appointment_time: time
     reason: str
     status: str
+    contact_phone: str
     notes: str
     cancellation_reason: str
 
@@ -37,6 +39,15 @@ class AppointmentCreate(BaseModel):
     appointment_time: time
     reason: str = "CONSULTATION"
     notes: str = ""
+    contact_phone: str = ""
+
+    _not_in_past = field_validator("appointment_date")(not_in_past)
+    _valid_phone = field_validator("contact_phone")(phone)
+
+    @model_validator(mode="after")
+    def validate_slot(self):
+        future_slot(self.appointment_date, self.appointment_time)
+        return self
 
 
 class CancelBody(BaseModel):
@@ -64,6 +75,7 @@ def list_appointments(user=Depends(get_current_user)):
             appointment_time=a.appointment_time,
             reason=a.reason,
             status=a.status,
+            contact_phone=a.contact_phone,
             notes=a.notes,
             cancellation_reason=a.cancellation_reason or "",
         )
@@ -91,6 +103,7 @@ def get_appointment(appointment_id: str, user=Depends(get_current_user)):
         appointment_time=a.appointment_time,
         reason=a.reason,
         status=a.status,
+        contact_phone=a.contact_phone,
         notes=a.notes,
         cancellation_reason=a.cancellation_reason or "",
     )
@@ -126,9 +139,10 @@ def create_appointment(body: AppointmentCreate, user=Depends(get_current_user)):
             appointment_date=body.appointment_date,
             appointment_time=body.appointment_time,
             reason=body.reason,
+            contact_phone=body.contact_phone,
             notes=body.notes,
         )
-    send_telegram(f"📅 Appointment booked (API): {user.email} with Dr. {doctor.user.get_full_name()} on {body.appointment_date}")
+    send_telegram(f"📅 Appointment booked (API): {user.email} ({body.contact_phone}) with Dr. {doctor.user.get_full_name()} on {body.appointment_date} at {body.appointment_time}")
     notify_appointment_booked(a)
     return AppointmentOut(
         id=str(a.id),
@@ -140,6 +154,7 @@ def create_appointment(body: AppointmentCreate, user=Depends(get_current_user)):
         appointment_time=a.appointment_time,
         reason=a.reason,
         status=a.status,
+        contact_phone=a.contact_phone,
         notes=a.notes,
         cancellation_reason="",
     )

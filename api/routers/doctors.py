@@ -1,12 +1,16 @@
 from datetime import date, time
 from decimal import Decimal
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 from api.deps import get_current_user
 from core.models.doctors.models import Doctor, Specialty, DoctorAvailability
 
 router = APIRouter(prefix="/doctors", tags=["doctors"])
+
+WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 
 class DoctorOut(BaseModel):
@@ -19,14 +23,27 @@ class DoctorOut(BaseModel):
     office_location: str
     bio: str
     is_active: bool
+    availability: list[dict] = []
 
     class Config:
         from_attributes = True
 
 
+def _availability_slots(d: Doctor) -> list[dict]:
+    slots = []
+    for s in d.availabilities.filter(is_available=True).order_by("weekday", "start_time"):
+        slots.append({
+            "weekday": s.weekday,
+            "weekday_name": WEEKDAYS[s.weekday] if s.weekday < 7 else "",
+            "start_time": s.start_time.strftime("%H:%M"),
+            "end_time": s.end_time.strftime("%H:%M"),
+        })
+    return slots
+
+
 @router.get("", response_model=list[DoctorOut])
 def list_doctors(specialty_id: str = None, user=Depends(get_current_user)):
-    qs = Doctor.objects.filter(is_active=True).select_related("user").prefetch_related("specialties")
+    qs = Doctor.objects.filter(is_active=True).select_related("user").prefetch_related("specialties", "availabilities")
     if specialty_id:
         qs = qs.filter(specialties__id=specialty_id)
     return [
@@ -40,26 +57,10 @@ def list_doctors(specialty_id: str = None, user=Depends(get_current_user)):
             office_location=d.office_location,
             bio=d.bio,
             is_active=d.is_active,
+            availability=_availability_slots(d),
         )
         for d in qs
     ]
-
-
-@router.get("/{doctor_id}", response_model=DoctorOut)
-def get_doctor(doctor_id: str, user=Depends(get_current_user)):
-    from django.shortcuts import get_object_or_404
-    d = get_object_or_404(Doctor.objects.select_related("user").prefetch_related("specialties"), id=doctor_id)
-    return DoctorOut(
-        id=str(d.id),
-        full_name=d.user.get_full_name(),
-        specialties=[s.name for s in d.specialties.all()],
-        license_number=d.license_number,
-        years_of_experience=d.years_of_experience,
-        consultation_fee=d.consultation_fee,
-        office_location=d.office_location,
-        bio=d.bio,
-        is_active=d.is_active,
-    )
 
 
 class SpecialtyOut(BaseModel):
@@ -71,6 +72,27 @@ class SpecialtyOut(BaseModel):
 @router.get("/specialties", response_model=list[SpecialtyOut])
 def list_specialties(user=Depends(get_current_user)):
     return [SpecialtyOut(id=s.id, name=s.name, description=s.description) for s in Specialty.objects.all()]
+
+
+@router.get("/{doctor_id}", response_model=DoctorOut)
+def get_doctor(doctor_id: uuid.UUID, user=Depends(get_current_user)):
+    from django.shortcuts import get_object_or_404
+    d = get_object_or_404(
+        Doctor.objects.select_related("user").prefetch_related("specialties", "availabilities"),
+        id=doctor_id,
+    )
+    return DoctorOut(
+        id=str(d.id),
+        full_name=d.user.get_full_name(),
+        specialties=[s.name for s in d.specialties.all()],
+        license_number=d.license_number,
+        years_of_experience=d.years_of_experience,
+        consultation_fee=d.consultation_fee,
+        office_location=d.office_location,
+        bio=d.bio,
+        is_active=d.is_active,
+        availability=_availability_slots(d),
+    )
 
 
 # ── Doctor Dashboard ──
@@ -142,6 +164,7 @@ def doctor_list_appointments(status: str = "", q: str = "", user=Depends(get_cur
             "patient_name": a.patient.get_full_name() or a.patient.email,
             "patient_id": str(a.patient.id),
             "patient_phone": a.patient.phone,
+            "contact_phone": a.contact_phone or a.patient.phone,
             "date": a.appointment_date.isoformat(),
             "time": a.appointment_time.strftime("%H:%M"),
             "reason": a.reason,
@@ -168,16 +191,23 @@ class AvailabilityOut(BaseModel):
 
 
 class AvailabilityCreate(BaseModel):
-    weekday: int
+    weekday: int = Field(ge=0, le=6)
     start_time: str
     end_time: str
+
+    @model_validator(mode="after")
+    def validate_range(self):
+        start = time.fromisoformat(self.start_time)
+        end = time.fromisoformat(self.end_time)
+        if start >= end:
+            raise ValueError("Start time must be before end time")
+        self.start_time = start.strftime("%H:%M")
+        self.end_time = end.strftime("%H:%M")
+        return self
 
 
 class AvailabilityUpdate(BaseModel):
     is_available: bool
-
-
-WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 
 @router.get("/me/availability", response_model=list[AvailabilityOut])
@@ -214,6 +244,13 @@ def add_availability(body: AvailabilityCreate, user=Depends(get_current_user)):
 
     start = time.fromisoformat(body.start_time)
     end = time.fromisoformat(body.end_time)
+    overlaps = DoctorAvailability.objects.filter(
+        doctor=doctor, weekday=body.weekday, is_available=True,
+    ).filter(
+        start_time__lt=end, end_time__gt=start,
+    ).exists()
+    if overlaps:
+        raise HTTPException(status_code=400, detail="Slot overlaps with an existing availability slot")
     slot = DoctorAvailability.objects.create(
         doctor=doctor, weekday=body.weekday, start_time=start, end_time=end,
     )

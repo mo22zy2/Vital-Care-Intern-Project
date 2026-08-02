@@ -1,6 +1,6 @@
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from api.deps import get_current_user
 from core.models.pharmacy.models import Medicine, PharmacyOrder, PharmacyOrderItem
@@ -45,7 +45,7 @@ def list_medicines(search: str = "", user=Depends(get_current_user)):
 
 class OrderItemIn(BaseModel):
     medicine_id: str
-    quantity: int
+    quantity: int = Field(ge=1, description="Quantity must be at least 1")
 
 
 class OrderCreate(BaseModel):

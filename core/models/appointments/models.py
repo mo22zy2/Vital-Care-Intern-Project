@@ -34,6 +34,7 @@ class Appointment(models.Model):
     appointment_time = models.TimeField()
     reason = models.CharField(max_length=20, choices=Reason.choices, default=Reason.CONSULTATION)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    contact_phone = models.CharField(max_length=20, blank=True, default="")
     notes = models.TextField(blank=True)
     cancellation_reason = models.TextField(blank=True)
 
