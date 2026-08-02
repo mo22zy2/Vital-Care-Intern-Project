@@ -6,7 +6,7 @@
 [![Flutter](https://img.shields.io/badge/Flutter-ready-02569B?logo=flutter)](https://flutter.dev/)
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python)](https://python.org/)
 
-A full-featured hospital management platform with **Django admin UI** for the web and **FastAPI REST API** for Flutter mobile. Built with Supabase Auth, 14 domain models, role-based dashboards, and 85+ API endpoints.
+A full-featured hospital management platform with **Django admin UI** for the web and **FastAPI REST API** for the Flutter app. Built with Supabase Auth, 14 domain models, role-based dashboards, and 85+ API endpoints.
 
 ---
 
@@ -20,7 +20,7 @@ A full-featured hospital management platform with **Django admin UI** for the we
                          │ Authorization: Bearer <token>
                          ▼
 ┌─────────────────────────────────────────────────────┐
-│               FastAPI (port 8001)                     │
+│               FastAPI (port 8081)                     │
 │  16 routers · 85+ endpoints · Pydantic schemas        │
 │  Supabase JWT validation · Django ORM integration     │
 └────────────────────────┬────────────────────────────┘
@@ -61,17 +61,19 @@ A full-featured hospital management platform with **Django admin UI** for the we
 | **Lab Tech** | Process bookings, release results, view dashboard | `GET /laboratory/dashboard`, `POST /laboratory/bookings/{id}/release-result` |
 | **Admin / Staff** | Full CRUD on users, doctors, medicines, lab tests, invoices, reports | `GET /admin/*` (25 endpoints), `GET /search` (global) |
 
+> **Flutter note:** the admin screens were removed from the mobile app — admin/STAFF users land on the patient dashboard. Admin operations remain available via the `/admin/*` API (for web/desktop clients) and the Django admin panel at `/admindashboard/`.
+
 ### Core Modules
 
 - **User Management** — Registration, login (email/phone), Supabase Auth + Django fallback, role-based access
-- **Appointments** — Book, confirm, complete, cancel (with reason), double-booking prevention
-- **Doctors** — Specialties, availability slots, performance metrics
-- **Pharmacy** — Medicine catalog, order placement, stock management, prescription validation
+- **Appointments** — Book, confirm, complete, cancel (with reason), double-booking prevention, working-hours-aware booking (the app shows the doctor's availability and rejects times outside them), patient contact phone required at booking
+- **Doctors** — Specialties, availability slots (exposed via the API, weekday 0–6), performance metrics
+- **Pharmacy** — Medicine catalog with prices and live stock, order placement with per-item quantity validation (min 1, capped at stock), order history/detail with line totals
 - **Laboratory** — Test catalog, booking, sample collection, result release
 - **Billing & Insurance** — Invoices, payments (cash/card/insurance), insurance claims
 - **Medical Records** — Patient history, diagnoses, treatment plans, test results
 - **Prescriptions** — Create, refill requests, fulfillment tracking
-- **Notifications** — In-app alerts on key events, Telegram bot integration
+- **Notifications** — In-app alerts on key events + per-user Telegram delivery via a bot link token (`/telegram/link` → user presses `t.me/<bot>?start=<token>` → `/telegram/sync` binds their chat)
 - **Feedback** — Rate doctors, anonymous option, Telegram notification
 - **Emergency Contacts** — CRUD per patient
 - **Global Search** — Search doctors, medicines, lab tests, users, invoices
@@ -131,8 +133,8 @@ python scripts/seed_data.py
 # Terminal 1 — Django Web UI (port 8000)
 python manage.py runserver
 
-# Terminal 2 — FastAPI for Flutter (port 8001)
-uvicorn api.main:app --reload --port 8001
+# Terminal 2 — FastAPI for Flutter (port 8081)
+uvicorn api.main:app --reload --port 8081
 ```
 
 ### Default Credentials
@@ -164,6 +166,7 @@ hospital_project/
 │   ├── main.py                 # FastAPI app with CORS, 16 routers
 │   ├── config.py               # Django ORM setup for FastAPI
 │   ├── deps.py                 # get_current_user (Supabase JWT validation)
+│   ├── validators.py           # Shared input validators (phone, slot)
 │   └── routers/                # 16 route modules
 │       ├── auth.py             # Register + login
 │       ├── accounts.py         # Profile, dashboard, timeline, password
@@ -178,6 +181,7 @@ hospital_project/
 │       ├── feedback.py         # Submit + list
 │       ├── insurance.py        # Providers, policies, claims
 │       ├── emergency_contacts.py # CRUD
+│       ├── telegram.py         # Per-user Telegram linking (link/sync)
 │       ├── admin.py            # 25 admin endpoints
 │       └── search.py           # Global search
 ├── core/                       # Django app
@@ -193,7 +197,7 @@ hospital_project/
 │   ├── templates/core/         # HTML templates (50+ files)
 │   ├── static/core/            # CSS, JS assets
 │   └── models/                 # 14 sub-apps
-│       ├── accounts/           # User, UserPreference, PasswordResetOTP
+│       ├── accounts/           # User, UserPreference, PasswordResetOTP, TelegramLink
 │       ├── appointments/       # Appointment
 │       ├── billing/            # Invoice, InvoiceItem
 │       ├── core/               # GeneratedReport, AnalyticsSnapshot
@@ -229,7 +233,7 @@ hospital_project/
 ```dart
 // 1. Register / Login — call FastAPI endpoints
 final response = await http.post(
-  Uri.parse('http://10.0.2.2:8001/auth/login'),
+  Uri.parse('http://localhost:8081/auth/login'),
   body: jsonEncode({'email': email, 'password': password}),
 );
 final data = jsonDecode(response.body);
@@ -251,11 +255,21 @@ final headers = {
 | Patient Dashboard | `GET /accounts/me/dashboard` |
 | Patient Timeline | `GET /accounts/me/timeline` |
 | Book Appointment | `POST /appointments` |
-| List Doctors | `GET /doctors` |
+| List Doctors | `GET /doctors` (includes `availability: [{weekday, start_time, end_time}]`) |
+| Doctor Detail | `GET /doctors/{id}` |
 | Pharmacy Orders | `POST /pharmacy/orders` |
 | Lab Bookings | `POST /laboratory/bookings` |
 | Notifications | `GET /notifications` |
 | Feedback | `POST /feedback` |
+
+### Telegram Notifications
+
+Every in-app notification is also delivered to the user's Telegram chat once linked:
+
+1. `POST /telegram/link` → returns `{token, bot_username, link, linked}`
+2. The user opens `https://t.me/<bot_username>?start=<token>` and presses **Start**
+3. `POST /telegram/sync` → polls the bot's `getUpdates` and binds `telegram_chat_id` to the account
+4. From then on `core/notify.py` sends a per-chat copy of every notification
 
 ---
 
@@ -263,8 +277,8 @@ final headers = {
 
 FastAPI auto-generates OpenAPI docs:
 
-- **Swagger UI**: `http://127.0.0.1:8001/docs`
-- **ReDoc**: `http://127.0.0.1:8001/redoc`
+- **Swagger UI**: `http://127.0.0.1:8081/docs`
+- **ReDoc**: `http://127.0.0.1:8081/redoc`
 
 ---
 
