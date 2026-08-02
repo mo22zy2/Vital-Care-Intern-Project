@@ -1,25 +1,19 @@
-import 'package:flutter/material.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/providers/base_provider.dart';
 
-class TimelineProvider extends ChangeNotifier {
+class TimelineProvider extends BaseProvider {
   List<Map<String, dynamic>> _events = [];
-  bool _isLoading = false;
 
   List<Map<String, dynamic>> get events => _events;
-  bool get isLoading => _isLoading;
 
   Future<void> load() async {
-    _isLoading = true;
-    notifyListeners();
+    setLoading(true);
     try {
-      final res = await ApiClient.get(ApiConstants.patientTimeline);
-      _events = (res['data'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-      _isLoading = false;
-      notifyListeners();
+      _events = unwrapList(await ApiClient.get(ApiConstants.patientTimeline));
     } catch (_) {
-      _isLoading = false;
-      notifyListeners();
+    } finally {
+      setLoading(false);
     }
   }
 }

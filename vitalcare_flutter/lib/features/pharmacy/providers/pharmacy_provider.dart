@@ -1,51 +1,26 @@
-import 'package:flutter/material.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/providers/base_provider.dart';
 
-class PharmacyProvider extends ChangeNotifier {
+class PharmacyProvider extends BaseProvider {
   List<Map<String, dynamic>> _medicines = [];
   List<Map<String, dynamic>> _orders = [];
-  bool _isLoading = false;
-  String? _error;
   String _search = '';
   String _rxFilter = '';
 
   List<Map<String, dynamic>> get medicines => _medicines;
   List<Map<String, dynamic>> get orders => _orders;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
 
-  Future<void> loadMedicines() async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final params = <String, String>{};
-      if (_search.isNotEmpty) params['search'] = _search;
-      final res = await ApiClient.get(ApiConstants.medicines, queryParams: params.isNotEmpty ? params : null);
-      _medicines = (res['data'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-      _isLoading = false;
-      notifyListeners();
-    } catch (_) {
-      _error = 'Failed to load medicines';
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
+  Future<void> loadMedicines() => guard(() async {
+        final params = <String, String>{};
+        if (_search.isNotEmpty) params['search'] = _search;
+        final res = await ApiClient.get(ApiConstants.medicines, queryParams: params.isNotEmpty ? params : null);
+        _medicines = unwrapList(res);
+      }, errorMessage: 'Failed to load medicines');
 
-  Future<void> loadOrders() async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final res = await ApiClient.get(ApiConstants.pharmacyOrders);
-      _orders = (res['data'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-      _isLoading = false;
-      notifyListeners();
-    } catch (_) {
-      _error = 'Failed to load orders';
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
+  Future<void> loadOrders() => guard(() async {
+        _orders = unwrapList(await ApiClient.get(ApiConstants.pharmacyOrders));
+      }, errorMessage: 'Failed to load orders');
 
   void setSearch(String q) {
     _search = q;
@@ -65,14 +40,15 @@ class PharmacyProvider extends ChangeNotifier {
     loadMedicines();
   }
 
+  /// Returns null on success, or an error message on failure.
   Future<String?> createOrder(List<MapEntry<String, int>> items) async {
     try {
       final body = {
         'items': items.map((e) => {'medicine_id': e.key, 'quantity': e.value}).toList(),
       };
-      final res = await ApiClient.post(ApiConstants.pharmacyOrders, body: body);
+      await ApiClient.post(ApiConstants.pharmacyOrders, body: body);
       await loadOrders();
-      return res['id']?.toString();
+      return null;
     } catch (e) {
       return e.toString();
     }

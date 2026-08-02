@@ -1,14 +1,16 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class ApiConstants {
   ApiConstants._();
 
-  static const String baseUrl = 'http://10.0.2.2:8001';
+  static String get baseUrl => kIsWeb ? 'http://localhost:8081' : 'http://10.0.2.2:8081';
 
   static const String login = '/auth/login';
   static const String register = '/auth/register';
-  static const String patientDashboard = '/accounts/me/dashboard';
-  static const String patientTimeline = '/accounts/me/timeline';
-  static const String profile = '/accounts/me/profile';
-  static const String changePassword = '/accounts/me/change-password';
+  static const String patientDashboard = '/accounts/dashboard';
+  static const String patientTimeline = '/accounts/timeline';
+  static const String profile = '/accounts/me';
+  static const String changePassword = '/accounts/me/password';
 
   static const String doctors = '/doctors';
   static const String doctorSpecialties = '/doctors/specialties';
@@ -27,7 +29,7 @@ class ApiConstants {
   static const String labDashboard = '/laboratory/dashboard';
 
   static const String invoices = '/billing/invoices';
-  static const String medicalRecords = '/medical_records';
+  static const String medicalRecords = '/medical-records';
   static const String prescriptions = '/prescriptions';
   static const String notifications = '/notifications';
   static const String feedback = '/feedback';
