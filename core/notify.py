@@ -16,26 +16,44 @@ def create_notification(recipient, notification_type, title, message, channel="I
     )
 
 
+def notify_user_telegram(user, message):
+    from core.models.accounts.models import TelegramLink
+    from core.telegram import send_telegram_to
+
+    try:
+        link = TelegramLink.objects.get(user=user)
+    except TelegramLink.DoesNotExist:
+        return
+    if not link.telegram_chat_id:
+        return
+    send_telegram_to(link.telegram_chat_id, message)
+
+
 def notify_appointment_booked(appointment):
     msg = f"Your appointment with Dr. {appointment.doctor.user.get_full_name()} on {appointment.appointment_date} at {appointment.appointment_time} has been booked."
     create_notification(appointment.patient, "APPOINTMENT_REMINDER", "Appointment Confirmed", msg)
+    notify_user_telegram(appointment.patient, f"📅 <b>Appointment booked</b>\n{msg}")
 
 
 def notify_appointment_status_changed(appointment):
     msg = f"Your appointment with Dr. {appointment.doctor.user.get_full_name()} on {appointment.appointment_date} is now {appointment.get_status_display()}."
     create_notification(appointment.patient, "APPOINTMENT_REMINDER", f"Appointment {appointment.get_status_display()}", msg)
+    notify_user_telegram(appointment.patient, f"📅 <b>Appointment {appointment.get_status_display()}</b>\n{msg}")
 
 
 def notify_test_result_available(booking):
     msg = f"Your test result for {booking.lab_test.name} is now available."
     create_notification(booking.patient, "TEST_RESULT", "Test Result Available", msg)
+    notify_user_telegram(booking.patient, f"🧪 <b>Test result available</b>\n{msg}")
 
 
 def notify_order_placed(order):
     msg = f"Your pharmacy order has been placed and is being processed."
     create_notification(order.patient, "MEDICATION_REFILL", "Order Placed", msg)
+    notify_user_telegram(order.patient, f"💊 <b>Order placed</b>\n{msg}")
 
 
 def notify_invoice_generated(invoice):
     msg = f"Invoice #{invoice.invoice_number} for ${invoice.total_amount} has been generated. Due: {invoice.due_date}."
     create_notification(invoice.patient, "BILLING", "New Invoice", msg)
+    notify_user_telegram(invoice.patient, f"🧾 <b>New invoice</b>\n{msg}")
