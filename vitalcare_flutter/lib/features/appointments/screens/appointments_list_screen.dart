@@ -135,7 +135,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
                                           Text(a['doctor_name']?.toString() ?? 'Doctor',
                                               style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
                                           const SizedBox(height: 2),
-                                          Text('${a['date']} at ${a['time']}',
+                                          Text('${a['appointment_date']} at ${a['appointment_time']}',
                                               style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                                         ],
                                       ),

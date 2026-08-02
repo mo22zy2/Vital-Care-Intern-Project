@@ -88,12 +88,12 @@ class _TimelineScreenState extends State<TimelineScreen> {
                                         ],
                                       ),
                                       const SizedBox(height: 6),
-                                      Text(e['title']?.toString() ?? '',
+                                      Text(e['description']?.toString() ?? '',
                                           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                                      if (e['description']?.toString().isNotEmpty == true) ...[
+                                      if (e['status']?.toString().isNotEmpty == true) ...[
                                         const SizedBox(height: 4),
-                                        Text(e['description'].toString(),
-                                            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                        Text(e['status'].toString(),
+                                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                                       ],
                                     ],
                                   ),
@@ -112,7 +112,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
   Color _colorForType(String type) {
     switch (type.toUpperCase()) {
       case 'APPOINTMENT': return AppColors.primary;
-      case 'MEDICAL_RECORD': return AppColors.accent;
+      case 'RECORD': return AppColors.accent;
       case 'PRESCRIPTION': return AppColors.success;
       case 'LAB_TEST': return AppColors.info;
       default: return AppColors.textSecondary;

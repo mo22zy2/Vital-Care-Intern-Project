@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_date_time_field.dart';
 import '../providers/laboratory_provider.dart';
 
 class BookTestScreen extends StatefulWidget {
@@ -67,17 +68,19 @@ class _BookTestScreenState extends State<BookTestScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextFormField(
+                      child: AppDateField(
                         controller: _dateCtl,
-                        decoration: const InputDecoration(labelText: 'Date *', hintText: 'YYYY-MM-DD'),
+                        label: 'Date *',
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(DateTime.now().year + 1, 12, 31),
                         validator: (v) => v == null || v.isEmpty ? 'Required' : null,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: TextFormField(
+                      child: AppTimeField(
                         controller: _timeCtl,
-                        decoration: const InputDecoration(labelText: 'Time *', hintText: 'HH:MM'),
+                        label: 'Time *',
                         validator: (v) => v == null || v.isEmpty ? 'Required' : null,
                       ),
                     ),

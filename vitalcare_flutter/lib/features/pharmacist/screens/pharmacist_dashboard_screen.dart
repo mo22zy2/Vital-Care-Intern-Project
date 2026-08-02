@@ -57,13 +57,13 @@ class _PharmacistDashboardScreenState extends State<PharmacistDashboardScreen> {
               final w = (constraints.maxWidth - 48) / 4;
               return Row(
                 children: [
-                  SizedBox(width: w, child: AppStatCard(label: 'Pending Orders', value: '${d['pending_count'] ?? prov.pendingOrders.length}', icon: Icons.receipt_long, color: AppColors.warning)),
+                  SizedBox(width: w, child: AppStatCard(label: 'Pending Orders', value: '${prov.pendingOrders.length}', icon: Icons.receipt_long, color: AppColors.warning)),
                   const SizedBox(width: 16),
                   SizedBox(width: w, child: AppStatCard(label: 'Total Medicines', value: '${d['total_medicines'] ?? 0}', icon: Icons.medication, color: AppColors.primary)),
                   const SizedBox(width: 16),
                   SizedBox(width: w, child: AppStatCard(label: 'Low Stock', value: '${prov.lowStockMedicines.length}', icon: Icons.inventory, color: AppColors.danger)),
                   const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Fulfilled Today', value: '${d['fulfilled_today'] ?? 0}', icon: Icons.check_circle, color: AppColors.success)),
+                  SizedBox(width: w, child: AppStatCard(label: 'Total Orders', value: '${d['total_orders'] ?? 0}', icon: Icons.check_circle, color: AppColors.success)),
                 ],
               );
             },
@@ -107,11 +107,11 @@ class _PharmacistDashboardScreenState extends State<PharmacistDashboardScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Order #${o['id'].toString().substring(0, 8)}', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-                        Text(o['patient_name']?.toString() ?? 'Patient', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text('${o['patient_name']?.toString() ?? 'Patient'}', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                        Text('${o['items'] is List ? (o['items'] as List).map((i) => '${i['medicine']} x${i['quantity']}').join(', ') : ''}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       ],
                     ),
                   ),

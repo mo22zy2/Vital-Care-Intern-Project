@@ -45,7 +45,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                   child: DropdownButton<String>(
                     value: _statusFilter.isEmpty ? null : _statusFilter,
                     hint: const Text('All Status', style: TextStyle(fontSize: 13)),
-                    items: ['', 'ACTIVE', 'COMPLETED', 'DISCONTINUED']
+                    items: ['', 'ACTIVE', 'COMPLETED', 'CANCELLED']
                         .map((s) => DropdownMenuItem(
                               value: s.isEmpty ? null : s,
                               child: Text(s.isEmpty ? 'All Status' : s, style: const TextStyle(fontSize: 13)),
@@ -105,7 +105,7 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                                         Icon(Icons.medication, size: 14, color: AppColors.textMuted),
                                         const SizedBox(width: 6),
                                         Expanded(
-                                          child: Text('${item['medicine'] ?? ''} — ${item['dosage'] ?? ''}',
+                                          child: Text('${item['medicine_name'] ?? ''} — ${item['dosage'] ?? ''}',
                                               style: const TextStyle(fontSize: 12)),
                                         ),
                                         Text('${item['quantity']}  x  ${item['duration_days']}d',

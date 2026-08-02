@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_badge.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -49,7 +50,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                           final o = prov.orders[i];
                           final id = o['id']?.toString() ?? '';
                           final status = o['status']?.toString() ?? '';
-                          final total = o['total']?.toString() ?? '';
                           final items = (o['items'] as List?) ?? [];
                           return ListTile(
                             onTap: () => context.push('/pharmacy/order/${id}', extra: o),
@@ -60,7 +60,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('\$$total', style: TextStyle(
+                                Text(money(o['total']), style: TextStyle(
                                   fontSize: 13, fontWeight: FontWeight.w600,
                                   fontFamily: 'JetBrains Mono',
                                 )),

@@ -110,15 +110,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
                 prov.isLoading
                     ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
-                    : prov.notifications.isEmpty
+                    : prov.filteredNotifications.isEmpty
                         ? const EmptyState(icon: Icons.notifications_none, title: 'No notifications')
                         : ListView.separated(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: prov.notifications.length,
+                            itemCount: prov.filteredNotifications.length,
                             separatorBuilder: (_, _a) => Divider(height: 1, color: AppColors.borderLight),
                             itemBuilder: (context, i) {
-                              final n = prov.notifications[i];
+                              final n = prov.filteredNotifications[i];
                               final isRead = n['is_read'] == true;
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

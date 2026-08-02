@@ -59,11 +59,11 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                 ),
                 const SizedBox(width: 8),
                 _filterChip('All', '', prov),
-                _filterChip('Scheduled', 'scheduled', prov),
-                _filterChip('In Progress', 'in_progress', prov),
-                _filterChip('Completed', 'completed', prov),
-                _filterChip('Cancelled', 'cancelled', prov),
-                _filterChip('No Show', 'no_show', prov),
+                _filterChip('Pending', 'PENDING', prov),
+                _filterChip('Confirmed', 'CONFIRMED', prov),
+                _filterChip('Completed', 'COMPLETED', prov),
+                _filterChip('Cancelled', 'CANCELLED', prov),
+                _filterChip('No Show', 'NO_SHOW', prov),
               ],
             ),
           ),
@@ -107,7 +107,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
 
   Widget _appointmentCard(Map<String, dynamic> a, DoctorProvider prov) {
     final status = a['status']?.toString() ?? '';
-    final actionable = ['scheduled', 'confirmed'].contains(status);
+    final actionable = ['PENDING', 'CONFIRMED'].contains(status);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -145,27 +145,18 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _actionBtn('Accept', AppColors.primary, () => _updateStatus(prov, a['id'].toString(), 'confirmed')),
+                  _actionBtn('Accept', AppColors.primary, () => _updateStatus(prov, a['id'].toString(), 'accept')),
                   const SizedBox(width: 8),
-                  _actionBtn('Cancel', AppColors.danger, () => _updateStatus(prov, a['id'].toString(), 'cancelled')),
+                  _actionBtn('Cancel', AppColors.danger, () => _updateStatus(prov, a['id'].toString(), 'cancel')),
                 ],
               ),
             ],
-            if (status == 'confirmed') ...[
+            if (status == 'CONFIRMED') ...[
               const Divider(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _actionBtn('Start', AppColors.warning, () => _updateStatus(prov, a['id'].toString(), 'in_progress')),
-                ],
-              ),
-            ],
-            if (status == 'in_progress') ...[
-              const Divider(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  _actionBtn('Complete', AppColors.success, () => _updateStatus(prov, a['id'].toString(), 'completed')),
+                  _actionBtn('Complete', AppColors.success, () => _updateStatus(prov, a['id'].toString(), 'complete')),
                   const SizedBox(width: 8),
                   _actionBtn('No Show', AppColors.danger, () => _updateStatus(prov, a['id'].toString(), 'no_show')),
                 ],
@@ -193,12 +184,11 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
 
   Color _statusColor(String status) {
     switch (status) {
-      case 'scheduled': return AppColors.info;
-      case 'confirmed': return AppColors.primary;
-      case 'in_progress': return AppColors.warning;
-      case 'completed': return AppColors.success;
-      case 'cancelled': return AppColors.danger;
-      case 'no_show': return AppColors.textMuted;
+      case 'PENDING': return AppColors.info;
+      case 'CONFIRMED': return AppColors.primary;
+      case 'COMPLETED': return AppColors.success;
+      case 'CANCELLED': return AppColors.danger;
+      case 'NO_SHOW': return AppColors.textMuted;
       default: return AppColors.textSecondary;
     }
   }

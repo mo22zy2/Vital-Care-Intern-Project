@@ -48,13 +48,13 @@ class _LabtechDashboardScreenState extends State<LabtechDashboardScreen> {
               final w = (constraints.maxWidth - 48) / 4;
               return Row(
                 children: [
-                  SizedBox(width: w, child: AppStatCard(label: 'Pending', value: '${d['pending_count'] ?? 0}', icon: Icons.pending, color: AppColors.warning)),
+                  SizedBox(width: w, child: AppStatCard(label: 'Pending', value: '${(d['pending'] as List? ?? []).length}', icon: Icons.pending, color: AppColors.warning)),
                   const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'In Progress', value: '${d['in_progress_count'] ?? 0}', icon: Icons.science, color: AppColors.info)),
+                  SizedBox(width: w, child: AppStatCard(label: 'In Progress', value: '${(d['in_progress'] as List? ?? []).length}', icon: Icons.science, color: AppColors.info)),
                   const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Completed Today', value: '${d['completed_today'] ?? 0}', icon: Icons.check_circle, color: AppColors.success)),
+                  SizedBox(width: w, child: AppStatCard(label: 'Total Today', value: '${d['total_today'] ?? 0}', icon: Icons.check_circle, color: AppColors.success)),
                   const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Total Tests', value: '${d['total_tests'] ?? 0}', icon: Icons.biotech, color: AppColors.primary)),
+                  SizedBox(width: w, child: AppStatCard(label: 'Samples Collected', value: '${(d['in_progress'] as List? ?? []).where((x) => x['status'] == 'SAMPLE_COLLECTED').length}', icon: Icons.biotech, color: AppColors.primary)),
                 ],
               );
             },
@@ -69,8 +69,8 @@ class _LabtechDashboardScreenState extends State<LabtechDashboardScreen> {
   }
 
   Widget _filterBar(LabtechProvider prov) {
-    final filters = ['', 'booked', 'sample_collected', 'in_progress', 'completed', 'cancelled'];
-    final labels = {'': 'All', 'booked': 'Booked', 'sample_collected': 'Sample Collected', 'in_progress': 'In Progress', 'completed': 'Completed', 'cancelled': 'Cancelled'};
+    final filters = ['', 'BOOKED', 'SAMPLE_COLLECTED', 'IN_PROGRESS', 'RESULT_READY', 'CANCELLED'];
+    final labels = {'': 'All', 'BOOKED': 'Booked', 'SAMPLE_COLLECTED': 'Sample Collected', 'IN_PROGRESS': 'In Progress', 'RESULT_READY': 'Result Ready', 'CANCELLED': 'Cancelled'};
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -149,16 +149,18 @@ class _LabtechDashboardScreenState extends State<LabtechDashboardScreen> {
     final id = b['id'].toString();
 
     switch (status) {
-      case 'booked':
+      case 'BOOKED':
         return [
-          _actionBtn('Collect Sample', AppColors.info, () => _updateStatus(prov, id, 'sample_collected')),
+          _actionBtn('Collect Sample', AppColors.info, () => _updateStatus(prov, id, 'collect_sample')),
         ];
-      case 'sample_collected':
+      case 'SAMPLE_COLLECTED':
         return [
-          _actionBtn('Start Test', AppColors.warning, () => _updateStatus(prov, id, 'in_progress')),
+          _actionBtn('Start Test', AppColors.warning, () => _updateStatus(prov, id, 'start_test')),
         ];
-      case 'in_progress':
+      case 'IN_PROGRESS':
         return [
+          _actionBtn('Complete', AppColors.warning, () => _updateStatus(prov, id, 'complete')),
+          const SizedBox(width: 8),
           _actionBtn('Release Result', AppColors.success, () => _showResultDialog(prov, id)),
         ];
       default:
@@ -210,10 +212,7 @@ class _LabtechDashboardScreenState extends State<LabtechDashboardScreen> {
           ElevatedButton(
             onPressed: () async {
               if (resultController.text.isEmpty) return;
-              final ok = await prov.updateBookingStatus(id, 'completed', resultData: {
-                'result': resultController.text,
-                'notes': notesController.text,
-              });
+              final ok = await prov.releaseResult(id, resultController.text, notesController.text);
               if (ctx.mounted) Navigator.pop(ctx);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(

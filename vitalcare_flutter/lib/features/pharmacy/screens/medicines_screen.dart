@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_badge.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
@@ -119,7 +119,6 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
     final price = m['price'];
     final stock = m['stock_quantity'] ?? 0;
     final rx = m['requires_prescription'] == true;
-    final priceStr = price is num ? NumberFormat.currency(symbol: '\$').format(price) : '\$0';
 
     return AppCard(
       child: Column(
@@ -140,32 +139,17 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
           const SizedBox(height: 8),
           Row(
             children: [
-              if (dosage.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.bg,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(dosage, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                ),
+              if (dosage.isNotEmpty) _infoChip(dosage),
               if (strength.isNotEmpty) ...[
                 const SizedBox(width: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.bg,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(strength, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                ),
+                _infoChip(strength),
               ],
             ],
           ),
           const Spacer(),
           Row(
             children: [
-              Text(priceStr, style: TextStyle(
+              Text(money(price), style: TextStyle(
                 fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primary,
                 fontFamily: 'JetBrains Mono',
               )),
@@ -177,4 +161,13 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
       ),
     );
   }
+
+  Widget _infoChip(String text) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(text, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+      );
 }

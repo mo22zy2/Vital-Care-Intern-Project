@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_badge.dart';
 import '../../../core/widgets/app_card.dart';
 
@@ -12,7 +13,6 @@ class OrderDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final id = order['id']?.toString() ?? '';
     final status = order['status']?.toString() ?? '';
-    final total = order['total']?.toString() ?? '0';
     final items = (order['items'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
     return SingleChildScrollView(
@@ -39,10 +39,10 @@ class OrderDetailScreen extends StatelessWidget {
                   decoration: BoxDecoration(color: AppColors.bg, border: Border(bottom: BorderSide(color: AppColors.borderLight))),
                   child: Row(
                     children: [
-                      Expanded(child: Text('Medicine', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted))),
-                      SizedBox(width: 80, child: Text('Price', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted))),
-                      SizedBox(width: 60, child: Text('Qty', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted))),
-                      SizedBox(width: 80, child: Text('Subtotal', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted), textAlign: TextAlign.right)),
+                      Expanded(child: _th('Medicine')),
+                      _th('Price', width: 80),
+                      _th('Qty', width: 60),
+                      _th('Subtotal', width: 80, align: TextAlign.right),
                     ],
                   ),
                 ),
@@ -52,9 +52,9 @@ class OrderDetailScreen extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(child: Text(item['medicine']?.toString() ?? '', style: const TextStyle(fontSize: 13))),
-                      SizedBox(width: 80, child: Text('\$${item['unit_price']}', style: TextStyle(fontSize: 13, fontFamily: 'JetBrains Mono'))),
-                      SizedBox(width: 60, child: Text('${item['quantity']}', style: const TextStyle(fontSize: 13))),
-                      SizedBox(width: 80, child: Text('\$${item['line_total']}', style: TextStyle(fontSize: 13, fontFamily: 'JetBrains Mono'), textAlign: TextAlign.right)),
+                      _td(money(item['unit_price']), width: 80, mono: true),
+                      _td('${item['quantity']}', width: 60),
+                      _td(money(item['line_total']), width: 80, align: TextAlign.right, mono: true),
                     ],
                   ),
                 )),
@@ -65,7 +65,7 @@ class OrderDetailScreen extends StatelessWidget {
                     children: [
                       Text('Total: ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.text)),
                       const SizedBox(width: 8),
-                      Text('\$$total', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.primary, fontFamily: 'JetBrains Mono')),
+                      Text(money(order['total']), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.primary, fontFamily: 'JetBrains Mono')),
                     ],
                   ),
                 ),
@@ -76,4 +76,14 @@ class OrderDetailScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _th(String label, {double? width, TextAlign align = TextAlign.start}) => SizedBox(
+        width: width,
+        child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted), textAlign: align),
+      );
+
+  Widget _td(String text, {double? width, TextAlign align = TextAlign.start, bool mono = false}) => SizedBox(
+        width: width,
+        child: Text(text, style: TextStyle(fontSize: 13, fontFamily: mono ? 'JetBrains Mono' : null), textAlign: align),
+      );
 }

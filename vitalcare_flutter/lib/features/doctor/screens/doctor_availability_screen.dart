@@ -78,7 +78,7 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                      child: Text(s['day']?.toString().substring(0, 3) ?? '', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary)),
+                      child: Text(s['weekday_name']?.toString().substring(0, 3) ?? '', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -129,11 +129,11 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
               onPressed: () async {
                 if (_startController.text.isEmpty || _endController.text.isEmpty) return;
                 final prov = context.read<DoctorProvider>();
-                await prov.saveAvailability([{
-                  'day': selectedDay,
+                await prov.saveAvailability({
+                  'weekday': days.indexOf(selectedDay),
                   'start_time': _startController.text,
                   'end_time': _endController.text,
-                }]);
+                });
                 if (ctx.mounted) Navigator.pop(ctx);
               },
               style: ElevatedButton.styleFrom(

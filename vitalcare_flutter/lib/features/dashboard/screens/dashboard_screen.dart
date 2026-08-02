@@ -34,6 +34,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (prov.isLoading) return const Center(child: CircularProgressIndicator());
     if (prov.error != null) return Center(child: Text(prov.error!, style: const TextStyle(color: AppColors.danger)));
 
+    final data = prov.data;
+    final upcoming = (data?['upcoming_appointments'] as List? ?? []).cast<Map<String, dynamic>>();
+    final activities = (data?['recent_activities'] as List? ?? []).cast<Map<String, dynamic>>();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(28),
       child: Column(
@@ -47,7 +51,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Text('Dashboard', style: Theme.of(context).textTheme.displayMedium),
                     const SizedBox(height: 4),
-                    Text('Welcome back, ${ApiClient.userFirstName}', style: const TextStyle(color: AppColors.textSecondary)),
+                    Text('Welcome back, ${ApiClient.userFirstName}. Here\'s your hospital overview.',
+                        style: const TextStyle(color: AppColors.textSecondary)),
                   ],
                 ),
               ),
@@ -56,16 +61,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          _buildStats(),
+          _buildStats(data),
           const SizedBox(height: 24),
-          if (prov.data != null) ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 3, child: _upcomingAppointments(prov.data!['upcoming_appointments'] as List? ?? [])),
-                const SizedBox(width: 20),
-                Expanded(flex: 2, child: _recentActivity(prov.data!['recent_activity'] as List? ?? [])),
-              ],
+          if (data != null) ...[
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final leftWidth = constraints.maxWidth * 2 / 3;
+                final rightWidth = constraints.maxWidth * 1 / 3 - 16;
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(width: leftWidth, child: _upcomingAppointments(upcoming)),
+                    const SizedBox(width: 16),
+                    SizedBox(width: rightWidth, child: _recentActivity(activities)),
+                  ],
+                );
+              },
             ),
           ],
         ],
@@ -73,35 +84,81 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStats() {
+  Widget _buildStats(Map<String, dynamic>? data) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = (constraints.maxWidth - 48) / 4;
         return Row(
           children: [
-            SizedBox(width: w, child: const AppStatCard(label: 'Appointments Today', value: '3', icon: Icons.calendar_today, color: AppColors.accent)),
+            SizedBox(
+              width: w,
+              child: AppStatCard(
+                label: 'Appointments Today',
+                value: '${data?['total_appointments'] ?? 0}',
+                icon: Icons.calendar_today,
+                color: AppColors.accent,
+              ),
+            ),
             const SizedBox(width: 16),
-            SizedBox(width: w, child: const AppStatCard(label: 'Active Doctors', value: '8', icon: Icons.medical_services, color: AppColors.primary)),
+            SizedBox(
+              width: w,
+              child: AppStatCard(
+                label: 'Unread Notifications',
+                value: '${data?['unread_notifications'] ?? 0}',
+                icon: Icons.notifications,
+                color: AppColors.info,
+              ),
+            ),
             const SizedBox(width: 16),
-            SizedBox(width: w, child: const AppStatCard(label: 'Pending Orders', value: '2', icon: Icons.inventory, color: AppColors.success)),
+            SizedBox(
+              width: w,
+              child: AppStatCard(
+                label: 'Pending Orders',
+                value: '${data?['pending_orders'] ?? 0}',
+                icon: Icons.inventory,
+                color: AppColors.success,
+              ),
+            ),
             const SizedBox(width: 16),
-            SizedBox(width: w, child: const AppStatCard(label: 'Revenue', value: '\$1,420', icon: Icons.monetization_on, color: AppColors.info)),
+            SizedBox(
+              width: w,
+              child: AppStatCard(
+                label: 'Total Invoices',
+                value: '${data?['total_invoices'] ?? 0}',
+                icon: Icons.receipt_long,
+                color: AppColors.primary,
+              ),
+            ),
           ],
         );
       },
     );
   }
 
-  Widget _upcomingAppointments(List items) {
+  Widget _upcomingAppointments(List<Map<String, dynamic>> items) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Upcoming Appointments', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.text)),
+          Row(
+            children: [
+              Expanded(
+                child: Text('Upcoming Appointments',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.text)),
+              ),
+              InkWell(
+                onTap: () => context.push('/appointments'),
+                child: const Text('View all →',
+                    style: TextStyle(fontSize: 12, color: AppColors.accent, fontWeight: FontWeight.w500)),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           if (items.isEmpty)
-            const EmptyState(icon: Icons.event_busy, title: 'No upcoming appointments',
-                description: 'Book your first appointment to get started')
+            const EmptyState(
+                icon: Icons.event_busy,
+                title: 'No upcoming appointments',
+                description: 'Schedule your first appointment to get started.')
           else
             ...items.map((a) => _appointmentRow(a)),
         ],
@@ -141,7 +198,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _recentActivity(List items) {
+  Widget _recentActivity(List<Map<String, dynamic>> items) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,7 +234,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(a['description']?.toString() ?? '', style: const TextStyle(fontSize: 13)),
-                Text(a['timestamp']?.toString() ?? '', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                Text(a['date']?.toString() ?? '', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
               ],
             ),
           ),

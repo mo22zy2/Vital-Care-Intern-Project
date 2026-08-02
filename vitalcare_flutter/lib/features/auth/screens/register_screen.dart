@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_date_time_field.dart';
 import '../providers/auth_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -137,7 +138,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         style: const TextStyle(fontSize: 14),
                       ),
                       const SizedBox(width: 12),
-                      _textField(_dobCtl, 'Date of Birth', hint: 'YYYY-MM-DD', expanded: true),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: AppDateField(
+                            controller: _dobCtl,
+                            label: 'Date of Birth',
+                            firstDate: DateTime(DateTime.now().year - 120, 12, 31),
+                            lastDate: DateTime.now(),
+                          ),
+                        ),
+                      ),
                     ]),
                     const SizedBox(height: 24),
                     AppButton.primary('Create Account', onPressed: _register, isLoading: auth.isLoading),

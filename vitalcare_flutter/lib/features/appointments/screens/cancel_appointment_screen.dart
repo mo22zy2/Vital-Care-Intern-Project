@@ -49,7 +49,7 @@ class _CancelAppointmentScreenState extends State<CancelAppointmentScreen> {
                   children: [
                     Text('Doctor: ${a['doctor_name'] ?? 'N/A'}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 4),
-                    Text('Date: ${a['date']} at ${a['time']}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                    Text('Date: ${a['appointment_date']} at ${a['appointment_time']}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                     const SizedBox(height: 4),
                     Text('Reason: ${a['reason'] ?? 'N/A'}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                   ],

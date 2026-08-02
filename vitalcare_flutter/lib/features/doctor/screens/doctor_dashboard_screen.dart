@@ -69,25 +69,25 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
               final w = (constraints.maxWidth - 48) / 4;
               return Row(
                 children: [
-                  SizedBox(width: w, child: AppStatCard(label: 'Today\'s Appointments', value: '${d['today_count'] ?? 0}', icon: Icons.calendar_today, color: AppColors.accent)),
+                  SizedBox(width: w, child: AppStatCard(label: 'Today\'s Appointments', value: '${d['total_today'] ?? 0}', icon: Icons.calendar_today, color: AppColors.accent)),
                   const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Total Patients', value: '${d['total_patients'] ?? 0}', icon: Icons.people, color: AppColors.primary)),
+                  SizedBox(width: w, child: AppStatCard(label: 'Completed', value: '${d['total_completed'] ?? 0}', icon: Icons.check_circle, color: AppColors.primary)),
                   const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Pending', value: '${d['pending_count'] ?? 0}', icon: Icons.pending, color: AppColors.warning)),
+                  SizedBox(width: w, child: AppStatCard(label: 'Pending', value: '${d['total_pending'] ?? 0}', icon: Icons.pending, color: AppColors.warning)),
                   const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Completed Today', value: '${d['completed_count'] ?? 0}', icon: Icons.check_circle, color: AppColors.success)),
+                  SizedBox(width: w, child: AppStatCard(label: 'Upcoming', value: '${(d['upcoming'] as List? ?? []).length}', icon: Icons.schedule, color: AppColors.success)),
                 ],
               );
             },
           ),
           const SizedBox(height: 24),
-          _todayAppointments(d['today_appointments'] as List? ?? []),
+          _todayAppointments((d['upcoming'] as List? ?? []).cast<Map<String, dynamic>>()),
         ],
       ),
     );
   }
 
-  Widget _todayAppointments(List items) {
+  Widget _todayAppointments(List<Map<String, dynamic>> items) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
