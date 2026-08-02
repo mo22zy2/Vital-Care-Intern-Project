@@ -18,6 +18,9 @@ venv/
 db.sqlite3
 media/
 staticfiles/
+scripts/bootstrap_admin.py
+scripts/scripts/bootstrap_admin.py
+AGENTS.md
 
 # Environment
 .env
