@@ -35,7 +35,7 @@
               <div style="font-size:0.75rem;color:var(--color-text-muted);">{{ test.description|truncatewords:15 }}</div>
               {% endif %}
             </td>
-            <td style="text-align:right;font-family:var(--font-mono);font-weight:600;">${{ test.price }}</td>
+            <td style="text-align:right;font-family:var(--font-mono);font-weight:600;">E£{{ test.price }}</td>
             <td><span class="badge badge-neutral">{{ test.turnaround_time_hours }}h</span></td>
             <td><a href="{% url 'lab_book_test' %}?test={{ test.id }}" class="btn btn-sm btn-outline">Book</a></td>
           </tr>

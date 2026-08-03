@@ -54,16 +54,19 @@ class _PharmacistDashboardScreenState extends State<PharmacistDashboardScreen> {
           const SizedBox(height: 24),
           LayoutBuilder(
             builder: (context, constraints) {
-              final w = (constraints.maxWidth - 48) / 4;
-              return Row(
+              final twoPerRow = constraints.maxWidth < 720;
+              final w = twoPerRow ? (constraints.maxWidth - 16) / 2 : (constraints.maxWidth - 48) / 4;
+              final cards = [
+                AppStatCard(label: 'Pending Orders', value: '${prov.pendingOrders.length}', icon: Icons.receipt_long, color: AppColors.warning),
+                AppStatCard(label: 'Total Medicines', value: '${d['total_medicines'] ?? 0}', icon: Icons.medication, color: AppColors.primary),
+                AppStatCard(label: 'Low Stock', value: '${prov.lowStockMedicines.length}', icon: Icons.inventory, color: AppColors.danger),
+                AppStatCard(label: 'Total Orders', value: '${d['total_orders'] ?? 0}', icon: Icons.check_circle, color: AppColors.success),
+              ];
+              return Wrap(
+                spacing: 16,
+                runSpacing: 16,
                 children: [
-                  SizedBox(width: w, child: AppStatCard(label: 'Pending Orders', value: '${prov.pendingOrders.length}', icon: Icons.receipt_long, color: AppColors.warning)),
-                  const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Total Medicines', value: '${d['total_medicines'] ?? 0}', icon: Icons.medication, color: AppColors.primary)),
-                  const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Low Stock', value: '${prov.lowStockMedicines.length}', icon: Icons.inventory, color: AppColors.danger)),
-                  const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Total Orders', value: '${d['total_orders'] ?? 0}', icon: Icons.check_circle, color: AppColors.success)),
+                  for (final c in cards) SizedBox(width: w, child: c),
                 ],
               );
             },

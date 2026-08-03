@@ -55,6 +55,7 @@ class AppDrawer extends StatelessWidget {
                   _navItem(context, Icons.notifications, 'Notifications', '/notifications'),
                   _navItem(context, Icons.timeline, 'Timeline', '/timeline'),
                   _navItem(context, Icons.feedback, 'Feedback', '/feedback'),
+                  _navItem(context, Icons.health_and_safety, 'Insurance', '/insurance'),
                   if (role == 'DOCTOR') ...[
                     const Divider(color: Colors.white24, height: 1),
                     _sectionHeader('Doctor Panel'),

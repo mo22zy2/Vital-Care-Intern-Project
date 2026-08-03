@@ -59,6 +59,8 @@ class BookingOut(BaseModel):
     scheduled_date: date
     scheduled_time: time
     status: str
+    result_summary: str | None = None
+    released_at: str | None = None
 
     class Config:
         from_attributes = True
@@ -96,6 +98,8 @@ def list_bookings(user=Depends(get_current_user)):
             scheduled_date=b.scheduled_date,
             scheduled_time=b.scheduled_time,
             status=b.status,
+            result_summary=b.result.result_summary if hasattr(b, "result") and b.result else None,
+            released_at=b.result.released_at.isoformat() if hasattr(b, "result") and b.result else None,
         )
         for b in bookings
     ]

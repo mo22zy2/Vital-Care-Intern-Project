@@ -16,62 +16,76 @@ class AppTopbar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.menu, color: AppColors.textSecondary),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-          const SizedBox(width: 8),
-          Text(title, style: TextStyle(
-            fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.text,
-            fontFamily: 'InterTight',
-          )),
-          const Spacer(),
-          SizedBox(
-            width: 200,
-            height: 36,
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search...',
-                prefixIcon: const Icon(Icons.search, size: 18),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final showSearch = constraints.maxWidth >= 760;
+          return Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.menu, color: AppColors.textSecondary),
+                onPressed: () => Scaffold.of(context).openDrawer(),
               ),
-              style: const TextStyle(fontSize: 13),
-              onSubmitted: (q) => context.push('/search', extra: q),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: AppColors.textSecondary, size: 22),
-            onPressed: () => context.push('/notifications'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_outline, color: AppColors.textSecondary, size: 22),
-            onPressed: () => context.push('/profile'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.textSecondary, size: 20),
-            onPressed: () {
-              context.read<AuthProvider>().logout();
-              context.go('/login');
-            },
-          ),
-        ],
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(title, overflow: TextOverflow.ellipsis, style: TextStyle(
+                  fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.text,
+                  fontFamily: 'InterTight',
+                )),
+              ),
+              const Spacer(),
+              if (showSearch) ...[
+                SizedBox(
+                  width: 200,
+                  height: 36,
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search...',
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.border),
+                      ),
+                    ),
+                    style: const TextStyle(fontSize: 13),
+                    onSubmitted: (q) => context.push('/search', extra: q),
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
+              if (!showSearch)
+                IconButton(
+                  icon: const Icon(Icons.search, color: AppColors.textSecondary, size: 22),
+                  onPressed: () => context.push('/search'),
+                ),
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined, color: AppColors.textSecondary, size: 22),
+                onPressed: () => context.push('/notifications'),
+              ),
+              IconButton(
+                icon: const Icon(Icons.person_outline, color: AppColors.textSecondary, size: 22),
+                onPressed: () => context.push('/profile'),
+              ),
+              IconButton(
+                icon: const Icon(Icons.logout, color: AppColors.textSecondary, size: 20),
+                onPressed: () {
+                  context.read<AuthProvider>().logout();
+                  context.go('/login');
+                },
+              ),
+            ],
+          );
+        },
       ),
     );
   }

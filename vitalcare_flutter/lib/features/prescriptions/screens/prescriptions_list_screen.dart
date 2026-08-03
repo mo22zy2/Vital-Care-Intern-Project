@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/app_badge.dart';
+import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../providers/prescriptions_provider.dart';
@@ -16,11 +17,94 @@ class PrescriptionsScreen extends StatefulWidget {
 class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
   String _statusFilter = '';
 
+  Future<void> _requestRefill(String itemId) async {
+    final prov = context.read<PrescriptionsProvider>();
+    final ok = await prov.requestRefill(itemId);
+    if (ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Refill requested — pending pharmacy approval')),
+      );
+    }
+  }
+
+  void _showRefills() {
+    final prov = context.read<PrescriptionsProvider>();
+    prov.loadRefills();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bg,
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        builder: (_, scrollController) => Consumer<PrescriptionsProvider>(
+          builder: (context, p, _) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Text('Refill History', style: Theme.of(context).textTheme.titleLarge),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: p.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : p.refills.isEmpty
+                        ? const EmptyState(icon: Icons.refresh, title: 'No refill requests yet')
+                        : ListView.builder(
+                            controller: scrollController,
+                            padding: const EdgeInsets.all(20),
+                            itemCount: p.refills.length,
+                            itemBuilder: (context, i) {
+                              final r = p.refills[i];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: AppCard(
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text('Requested: ${r['requested_at']?.toString().substring(0, 10) ?? ''}',
+                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                            if (r['fulfilled_at'] != null)
+                                              Text('Fulfilled: ${r['fulfilled_at'].toString().substring(0, 10)}',
+                                                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                                          ],
+                                        ),
+                                      ),
+                                      AppBadge(label: r['status']?.toString() ?? ''),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PrescriptionsProvider>().load();
+      final p = context.read<PrescriptionsProvider>();
+      p.load();
+      p.loadRefills();
     });
   }
 
@@ -33,8 +117,22 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
           padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
           child: Row(
             children: [
-              Text('Prescriptions', style: Theme.of(context).textTheme.displayMedium),
-              const Spacer(),
+              Flexible(
+                child: Text('Prescriptions',
+                    style: Theme.of(context).textTheme.displayMedium,
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: _showRefills,
+                icon: const Icon(Icons.history, size: 16),
+                label: const Text('Refills', style: TextStyle(fontSize: 13)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
@@ -110,6 +208,15 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                                         ),
                                         Text('${item['quantity']}  x  ${item['duration_days']}d',
                                             style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                                        if (p['status']?.toString() == 'ACTIVE')
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 8),
+                                            child: SizedBox(
+                                              height: 28,
+                                              child: AppButton.primary('Refill', expanded: false,
+                                                  onPressed: () => _requestRefill(item['id'].toString())),
+                                            ),
+                                          ),
                                       ],
                                     ),
                                   )),

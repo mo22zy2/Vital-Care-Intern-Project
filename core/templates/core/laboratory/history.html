@@ -40,6 +40,7 @@
           <td>
             {% if booking.result %}
             <span style="font-size:0.8125rem;">{{ booking.result.result_summary|truncatewords:20 }}</span>
+            <a href="{% url 'lab_result_detail' booking.id %}" class="btn btn-sm btn-ghost" style="margin-left:6px;">View Full Result →</a>
             {% elif booking.status == 'RESULT_READY' %}
             <span style="color:var(--color-text-muted);font-size:0.8125rem;">View in records</span>
             {% else %}

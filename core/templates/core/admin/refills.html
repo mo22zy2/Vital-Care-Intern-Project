@@ -1,0 +1,79 @@
+{% extends "core/base.html" %}
+{% block title %}Refill Requests — Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Refill Requests</h1>
+    <p class="page-subtitle">Approve, deny, or fulfill prescription refill requests</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <form method="GET" class="filter-bar" style="margin:0;">
+      <input class="form-input" type="text" name="q" placeholder="Search patient or medicine..." value="{{ query }}" style="width:240px;">
+      <select class="form-select" name="status" style="width:auto;min-width:130px;">
+        <option value="">All Statuses</option>
+        {% for value, label in statuses %}
+        <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+    </form>
+  </div>
+  <div class="card-body" style="padding:0;">
+    {% if refills %}
+    <table>
+      <thead>
+        <tr>
+          <th>Requested</th>
+          <th>Patient</th>
+          <th>Medicine</th>
+          <th>Doctor</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in refills %}
+        <tr>
+          <td>{{ r.requested_at|date:"M d, Y H:i" }}</td>
+          <td>{{ r.prescription_item.prescription.patient.get_full_name }}</td>
+          <td>{{ r.prescription_item.medicine.name }} &mdash; {{ r.prescription_item.dosage }}</td>
+          <td>{{ r.prescription_item.prescription.doctor.user.get_full_name }}</td>
+          <td>
+            <span class="badge {% if r.status == 'REQUESTED' %}badge-warning{% elif r.status == 'APPROVED' %}badge-info{% elif r.status == 'FULFILLED' %}badge-success{% else %}badge-danger{% endif %}">{{ r.get_status_display }}</span>
+          </td>
+          <td>
+            {% if r.status == 'REQUESTED' %}
+            <form method="POST" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="refill_id" value="{{ r.id }}">
+              <button type="submit" name="action" value="approve" class="btn btn-xs btn-success">Approve</button>
+              <button type="submit" name="action" value="deny" class="btn btn-xs btn-outline">Deny</button>
+            </form>
+            {% elif r.status == 'APPROVED' %}
+            <form method="POST" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="refill_id" value="{{ r.id }}">
+              <button type="submit" name="action" value="fulfill" class="btn btn-xs btn-primary">Mark Fulfilled</button>
+            </form>
+            {% else %}
+            &mdash;
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="padding:32px;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">💊</div>
+      <h3>No refill requests found</h3>
+      <p style="color:var(--text-muted);">Refill requests from patients will appear here.</p>
+    </div>
+    {% endif %}
+  </div>
+  {% include "core/admin/_pagination.html" %}
+</div>
+{% endblock %}

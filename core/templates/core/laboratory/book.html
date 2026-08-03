@@ -25,7 +25,7 @@
           <option value="">— Select Test —</option>
           {% for test in tests %}
           <option value="{{ test.id }}" {% if request.GET.test == test.id|stringformat:"s" %}selected{% endif %}>
-            {{ test.name }} — ${{ test.price }}
+            {{ test.name }} — E£{{ test.price }}
           </option>
           {% endfor %}
         </select>

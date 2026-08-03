@@ -8,7 +8,6 @@ from api.deps import get_current_user
 from api.validators import not_in_past, future_slot, phone
 from core.models.appointments.models import Appointment
 from core.models.doctors.models import Doctor, DoctorAvailability
-from core.telegram import send_telegram
 from core.notify import notify_appointment_booked, notify_appointment_status_changed
 
 router = APIRouter(prefix="/appointments", tags=["appointments"])
@@ -120,10 +119,13 @@ def create_appointment(body: AppointmentCreate, user=Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Cannot book in the past")
 
     weekday = body.appointment_date.weekday()
-    slot = DoctorAvailability.objects.filter(
-        doctor=doctor, weekday=weekday, is_available=True,
-        start_time__lte=body.appointment_time, end_time__gte=body.appointment_time,
-    ).first()
+    requested_time = body.appointment_time.replace(microsecond=0)
+    slot = next(
+        (s for s in DoctorAvailability.objects.filter(
+            doctor=doctor, weekday=weekday, is_available=True,
+        ) if s.covers(requested_time)),
+        None,
+    )
     if not slot:
         raise HTTPException(status_code=400, detail="Doctor not available at this time")
 
@@ -142,7 +144,6 @@ def create_appointment(body: AppointmentCreate, user=Depends(get_current_user)):
             contact_phone=body.contact_phone,
             notes=body.notes,
         )
-    send_telegram(f"📅 Appointment booked (API): {user.email} ({body.contact_phone}) with Dr. {doctor.user.get_full_name()} on {body.appointment_date} at {body.appointment_time}")
     notify_appointment_booked(a)
     return AppointmentOut(
         id=str(a.id),

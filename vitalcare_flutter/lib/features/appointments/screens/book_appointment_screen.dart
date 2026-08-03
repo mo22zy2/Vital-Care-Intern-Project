@@ -90,12 +90,16 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   String? _availabilityError() {
     final slots = _slots();
-    if (slots.isEmpty) return null;
     final date = DateTime.tryParse(_dateCtl.text);
     final timeStr = _timeCtl.text.trim();
     if (date == null || timeStr.isEmpty) return null;
     final t = _toMinutes(timeStr);
     if (t == null) return null;
+    final now = DateTime.now();
+    if (date.year == now.year && date.month == now.month && date.day == now.day &&
+        t <= now.hour * 60 + now.minute) {
+      return 'This time has already passed today. Please choose a later time.';
+    }
     for (final s in slots) {
       if (s['weekday'] == date.weekday - 1) {
         final st = _toMinutes(s['start_time']);

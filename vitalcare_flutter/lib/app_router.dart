@@ -3,6 +3,8 @@ import 'core/network/api_client.dart';
 import 'core/widgets/app_shell.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
+import 'features/auth/screens/forgot_password_screen.dart';
+import 'features/auth/screens/otp_verify_screen.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
 import 'features/doctors/screens/doctors_list_screen.dart';
 import 'features/doctors/screens/doctor_detail_screen.dart';
@@ -15,14 +17,18 @@ import 'features/pharmacy/screens/order_history_screen.dart';
 import 'features/pharmacy/screens/order_detail_screen.dart';
 import 'features/laboratory/screens/tests_screen.dart';
 import 'features/laboratory/screens/book_test_screen.dart';
+import 'features/laboratory/screens/lab_result_screen.dart';
 import 'features/billing/screens/invoices_screen.dart';
+import 'features/billing/screens/pay_invoice_screen.dart';
 import 'features/medical_records/screens/records_list_screen.dart';
 import 'features/prescriptions/screens/prescriptions_list_screen.dart';
 import 'features/notifications/screens/notifications_list_screen.dart';
 import 'features/timeline/screens/timeline_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
+import 'features/profile/screens/password_change_screen.dart';
 import 'features/feedback/screens/feedback_screen.dart';
 import 'features/search/screens/search_screen.dart';
+import 'features/insurance/screens/insurance_screen.dart';
 import 'features/doctor/screens/doctor_dashboard_screen.dart';
 import 'features/doctor/screens/doctor_appointments_screen.dart';
 import 'features/doctor/screens/doctor_availability_screen.dart';
@@ -34,15 +40,31 @@ final GoRouter router = GoRouter(
   initialLocation: '/login',
   redirect: (context, state) {
     final loggedIn = ApiClient.isLoggedIn;
-    final loginRoute = state.matchedLocation == '/login';
-    final registerRoute = state.matchedLocation == '/register';
-    if (!loggedIn && !loginRoute && !registerRoute) return '/login';
+    final location = state.matchedLocation;
+    final loginRoute = location == '/login';
+    final registerRoute = location == '/register';
+    final forgotRoute = location.startsWith('/forgot-password');
+    if (!loggedIn && !loginRoute && !registerRoute && !forgotRoute) return '/login';
     if (loggedIn && (loginRoute || registerRoute)) return '/dashboard';
+    final role = ApiClient.userRole;
+    if (loggedIn) {
+      final doctorOnly = location.startsWith('/doctor');
+      final pharmacistOnly = location.startsWith('/pharmacist');
+      final labtechOnly = location.startsWith('/labtech');
+      if (doctorOnly && role != 'DOCTOR') return '/dashboard';
+      if (pharmacistOnly && role != 'PHARMACIST') return '/dashboard';
+      if (labtechOnly && role != 'LAB_TECH') return '/dashboard';
+    }
     return null;
   },
   routes: [
     GoRoute(path: '/login', builder: (_, _a) => const LoginScreen()),
     GoRoute(path: '/register', builder: (_, _a) => const RegisterScreen()),
+    GoRoute(path: '/forgot-password', builder: (_, _a) => const ForgotPasswordScreen()),
+    GoRoute(path: '/forgot-password/verify', builder: (_, state) {
+      final email = state.extra as String? ?? '';
+      return OtpVerifyScreen(email: email);
+    }),
     ShellRoute(
       builder: (_, _a, child) => AppShell(child: child),
       routes: [
@@ -73,13 +95,23 @@ final GoRouter router = GoRouter(
           final extra = state.extra as Map<String, dynamic>?;
           return BookTestScreen(preselectedTest: extra);
         }),
+        GoRoute(path: '/laboratory/result', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return LabResultScreen(booking: extra ?? {});
+        }),
         GoRoute(path: '/billing', builder: (_, _a) => const InvoicesScreen()),
+        GoRoute(path: '/billing/pay', builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return PayInvoiceScreen(invoice: extra ?? {});
+        }),
         GoRoute(path: '/medical-records', builder: (_, _a) => const MedicalRecordsScreen()),
         GoRoute(path: '/prescriptions', builder: (_, _a) => const PrescriptionsScreen()),
         GoRoute(path: '/notifications', builder: (_, _a) => const NotificationsScreen()),
         GoRoute(path: '/timeline', builder: (_, _a) => const TimelineScreen()),
         GoRoute(path: '/feedback', builder: (_, _a) => const FeedbackScreen()),
+        GoRoute(path: '/insurance', builder: (_, _a) => const InsuranceScreen()),
         GoRoute(path: '/profile', builder: (_, _a) => const ProfileScreen()),
+        GoRoute(path: '/profile/password', builder: (_, _a) => const PasswordChangeScreen()),
         GoRoute(path: '/search', builder: (_, state) => SearchScreen(initialQuery: state.extra?.toString() ?? '')),
         GoRoute(path: '/doctor/dashboard', builder: (_, _a) => const DoctorDashboardScreen()),
         GoRoute(path: '/doctor/appointments', builder: (_, _a) => const DoctorAppointmentsScreen()),

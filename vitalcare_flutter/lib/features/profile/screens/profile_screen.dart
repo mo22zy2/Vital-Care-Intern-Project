@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/app_button.dart';
@@ -27,6 +28,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _ecRelCtl = TextEditingController();
   final _ecPhoneCtl = TextEditingController();
   String? _addingEc;
+  String? _editingEcId;
 
   @override
   void initState() {
@@ -82,6 +84,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _addingEc = null);
   }
 
+  void _startEditEc(Map<String, dynamic> ec) {
+    _ecNameCtl.text = ec['full_name']?.toString() ?? '';
+    _ecRelCtl.text = ec['relationship']?.toString() ?? '';
+    _ecPhoneCtl.text = ec['phone']?.toString() ?? '';
+    setState(() {
+      _editingEcId = ec['id'].toString();
+      _addingEc = 'edit';
+    });
+  }
+
+  Future<void> _saveEcEdit() async {
+    if (_editingEcId == null) return;
+    final ok = await context.read<ProfileProvider>().updateEmergencyContact(_editingEcId!, {
+      'full_name': _ecNameCtl.text.trim(),
+      'relationship': _ecRelCtl.text.trim(),
+      'phone': _ecPhoneCtl.text.trim(),
+    });
+    if (ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Emergency contact updated')),
+      );
+    }
+    _ecNameCtl.clear();
+    _ecRelCtl.clear();
+    _ecPhoneCtl.clear();
+    setState(() {
+      _addingEc = null;
+      _editingEcId = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<ProfileProvider>();
@@ -94,67 +127,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Text('Profile', style: Theme.of(context).textTheme.displayMedium),
           const SizedBox(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: AppCard(
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Account Information', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          initialValue: user?['email']?.toString() ?? '',
-                          decoration: const InputDecoration(labelText: 'Email'),
-                          enabled: false,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          initialValue: user?['role']?.toString() ?? '',
-                          decoration: const InputDecoration(labelText: 'Role'),
-                          enabled: false,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _fnCtl,
-                          decoration: const InputDecoration(labelText: 'First Name'),
-                          validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _lnCtl,
-                          decoration: const InputDecoration(labelText: 'Last Name'),
-                          validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _phoneCtl,
-                          decoration: const InputDecoration(labelText: 'Phone'),
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _addressCtl,
-                          decoration: const InputDecoration(labelText: 'Address'),
-                        ),
-                        const SizedBox(height: 20),
-                        AppButton.primary('Save Changes', isLoading: _saving, onPressed: _save),
-                        if (prov.error != null) ...[
-                          const SizedBox(height: 8),
-                          Text(prov.error!, style: TextStyle(color: AppColors.danger, fontSize: 13)),
-                        ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final stack = constraints.maxWidth < 720;
+              final infoCard = AppCard(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Account Information', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        initialValue: user?['email']?.toString() ?? '',
+                        decoration: const InputDecoration(labelText: 'Email'),
+                        enabled: false,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        initialValue: user?['role']?.toString() ?? '',
+                        decoration: const InputDecoration(labelText: 'Role'),
+                        enabled: false,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _fnCtl,
+                        decoration: const InputDecoration(labelText: 'First Name'),
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _lnCtl,
+                        decoration: const InputDecoration(labelText: 'Last Name'),
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _phoneCtl,
+                        decoration: const InputDecoration(labelText: 'Phone'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _addressCtl,
+                        decoration: const InputDecoration(labelText: 'Address'),
+                      ),
+                      const SizedBox(height: 20),
+                      AppButton.primary('Save Changes', isLoading: _saving, onPressed: _save),
+                      if (prov.error != null) ...[
+                        const SizedBox(height: 8),
+                        Text(prov.error!, style: TextStyle(color: AppColors.danger, fontSize: 13)),
                       ],
-                    ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              );
+              final rightCol = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                     AppCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,6 +220,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           ),
                                         ),
                                         IconButton(
+                                          icon: Icon(Icons.edit_outlined, color: AppColors.primary, size: 18),
+                                          onPressed: () => _startEditEc(ec),
+                                        ),
+                                        IconButton(
                                           icon: Icon(Icons.delete_outline, color: AppColors.danger, size: 18),
                                           onPressed: () => prov.deleteEmergencyContact(ec['id'].toString()),
                                         ),
@@ -200,6 +233,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                           if (_addingEc != null) ...[
                             const SizedBox(height: 12),
+                            Text(_addingEc == 'edit' ? 'Edit Emergency Contact' : 'New Emergency Contact',
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
                             TextField(
                               controller: _ecNameCtl,
                               decoration: const InputDecoration(labelText: 'Full Name', isDense: true),
@@ -217,9 +253,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                Expanded(child: AppButton.primary('Save', onPressed: _addEc)),
+                                Expanded(
+                                  child: AppButton.primary(_addingEc == 'edit' ? 'Save' : 'Add',
+                                      onPressed: _addingEc == 'edit' ? _saveEcEdit : _addEc),
+                                ),
                                 const SizedBox(width: 8),
-                                Expanded(child: AppButton.outline('Cancel', onPressed: () => setState(() => _addingEc = null))),
+                                Expanded(
+                                  child: AppButton.outline('Cancel', onPressed: () {
+                                    _ecNameCtl.clear();
+                                    _ecRelCtl.clear();
+                                    _ecPhoneCtl.clear();
+                                    setState(() {
+                                      _addingEc = null;
+                                      _editingEcId = null;
+                                    });
+                                  }),
+                                ),
                               ],
                             ),
                           ],
@@ -235,13 +284,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 12),
                           Text('Member since: ${user?['date_joined']?.toString().substring(0, 10) ?? 'N/A'}',
                               style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                          const SizedBox(height: 16),
+                          AppButton.outline('Change Password', onPressed: () => context.push('/profile/password')),
                         ],
                       ),
                     ),
                   ],
-                ),
-              ),
-            ],
+                );
+              if (stack) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    infoCard,
+                    const SizedBox(height: 20),
+                    rightCol,
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: infoCard),
+                  const SizedBox(width: 20),
+                  Expanded(child: rightCol),
+                ],
+              );
+            },
           ),
         ],
       ),

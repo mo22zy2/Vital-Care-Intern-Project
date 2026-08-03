@@ -17,6 +17,22 @@
     <div style="background:rgba(217,68,59,0.08);color:var(--color-danger);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:20px;font-size:0.875rem;">{{ error }}</div>
     {% endif %}
 
+    {% if doctor_hours %}
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius-sm);padding:16px 18px;margin-bottom:20px;">
+      <div style="font-weight:600;color:#0369a1;margin-bottom:10px;">🕒 Dr. {{ hours_doctor.user.get_full_name }} working hours</div>
+      <table style="width:100%;font-size:0.85rem;border-collapse:collapse;">
+        {% for s in doctor_hours %}
+        <tr>
+          <td style="padding:4px 0;color:#0c4a6e;">{{ s.get_weekday_display }}</td>
+          <td style="padding:4px 0;text-align:right;color:#0369a1;font-weight:600;">{{ s.start_time|time:"H:i" }} – {{ s.end_time|time:"H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td style="padding:4px 0;color:#0c4a6e;">No availability set for this doctor.</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+
     <form method="POST">
       {% csrf_token %}
 
@@ -32,7 +48,7 @@
 
       <div class="form-group">
         <label class="form-label" for="doctor_id">Doctor <span style="color:var(--color-danger);">*</span></label>
-        <select class="form-select" id="doctor_id" name="doctor_id" required>
+        <select class="form-select" id="doctor_id" name="doctor_id" required onchange="showDoctorHours()">
           <option value="">— Select Doctor —</option>
           {% for d in doctors %}
           <option value="{{ d.id }}" data-specialties="{% for s in d.specialties.all %}{{ s.id }}{% if not forloop.last %},{% endif %}{% endfor %}" {% if preselected_doctor == d.id|stringformat:"s" %}selected{% endif %}>
@@ -42,14 +58,22 @@
         </select>
       </div>
 
+      <div id="hours-panel" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius-sm);padding:16px 18px;margin-bottom:20px;">
+        <div style="font-weight:600;color:#0369a1;margin-bottom:10px;">🕒 Working hours</div>
+        <table style="width:100%;font-size:0.85rem;border-collapse:collapse;" id="hours-table"></table>
+      </div>
+
       <div class="form-group">
         <label class="form-label" for="appointment_date">Date <span style="color:var(--color-danger);">*</span></label>
-        <input class="form-input" type="date" id="appointment_date" name="appointment_date" required>
+        <input class="form-input" type="date" id="appointment_date" name="appointment_date" required onchange="showDoctorHours()">
       </div>
 
       <div class="form-group">
         <label class="form-label" for="appointment_time">Time <span style="color:var(--color-danger);">*</span></label>
-        <input class="form-input" type="time" id="appointment_time" name="appointment_time" required>
+        <select class="form-select" id="appointment_time" name="appointment_time" required>
+          <option value="">— Select a doctor and date first —</option>
+        </select>
+        <div class="field-error" id="time-hint" style="display:none;"></div>
       </div>
 
       <div class="form-group">
@@ -74,7 +98,105 @@
   </div>
 </div>
 
+<script id="avail-data" type="application/json">{{ availability_json|safe }}</script>
 <script>
+var AVAIL = JSON.parse(document.getElementById('avail-data').textContent);
+var DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+var TIME_HINT = document.getElementById('time-hint');
+
+function fmt12(t) {
+  var parts = t.split(':');
+  var h = parseInt(parts[0], 10), m = parts[1];
+  var ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if (h === 0) h = 12;
+  return h + ':' + m + ' ' + ap;
+}
+
+function showDoctorHours() {
+  var docSel = document.getElementById('doctor_id');
+  var panel = document.getElementById('hours-panel');
+  var table = document.getElementById('hours-table');
+  var docId = docSel.value;
+  if (!docId) { panel.style.display = 'none'; return; }
+  var days = {};
+  (AVAIL[docId] || []).forEach(function (s) {
+    (days[s.weekday] = days[s.weekday] || []).push(fmt12(s.start) + ' – ' + fmt12(s.end));
+  });
+  table.innerHTML = '';
+  for (var wd = 0; wd < 7; wd++) {
+    var tr = document.createElement('tr');
+    var tdD = document.createElement('td');
+    tdD.style.padding = '4px 0'; tdD.style.color = '#0c4a6e';
+    tdD.textContent = DAY_NAMES[wd];
+    var tdH = document.createElement('td');
+    tdH.style.padding = '4px 0'; tdH.style.textAlign = 'right'; tdH.style.color = '#0369a1'; tdH.style.fontWeight = '600';
+    tdH.textContent = days[wd] ? days[wd].join(', ') : '—';
+    tr.appendChild(tdD); tr.appendChild(tdH);
+    table.appendChild(tr);
+  }
+  panel.style.display = 'block';
+  fillTimeOptions();
+}
+
+function addStepTimes(times, start, end) {
+  var sh = parseInt(start.split(':')[0], 10), sm = parseInt(start.split(':')[1], 10);
+  var eh = parseInt(end.split(':')[0], 10), em = parseInt(end.split(':')[1], 10);
+  var cur = sh * 60 + sm, stop = eh * 60 + em;
+  if (stop <= cur) stop += 24 * 60;
+  while (cur < stop) {
+    var h = Math.floor(cur / 60) % 24, m = cur % 60;
+    times.push((h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m);
+    cur += 30;
+  }
+}
+
+function fillTimeOptions() {
+  var docSel = document.getElementById('doctor_id');
+  var dateSel = document.getElementById('appointment_date');
+  var timeSel = document.getElementById('appointment_time');
+  timeSel.innerHTML = '';
+  var docId = docSel.value, dateVal = dateSel.value;
+  if (!docId || !dateVal) {
+    timeSel.innerHTML = '<option value="">— Select a doctor and date first —</option>';
+    TIME_HINT.style.display = 'none';
+    return;
+  }
+  var wd = (new Date(dateVal + 'T00:00:00').getDay() + 6) % 7;
+  var slots = (AVAIL[docId] || []).filter(function (s) { return s.weekday == wd; });
+  if (!slots.length) {
+    timeSel.innerHTML = '<option value="">— Doctor not available on this day —</option>';
+    TIME_HINT.textContent = 'Dr. is not available on this day.';
+    TIME_HINT.style.display = 'block';
+    return;
+  }
+  var times = [];
+  slots.forEach(function (s) { addStepTimes(times, s.start, s.end); });
+  times = Array.from(new Set(times)).sort();
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var nowH = new Date().getHours(), nowM = new Date().getMinutes();
+  var isToday = dateVal === todayStr;
+  times = times.filter(function (t) {
+    if (!isToday) return true;
+    var parts = t.split(':');
+    var h = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+    return h > nowH || (h === nowH && m > nowM);
+  });
+  if (!times.length) {
+    timeSel.innerHTML = '<option value="">— No remaining times today —</option>';
+    TIME_HINT.textContent = 'All of the doctor\'s times today have passed. Choose another day.';
+    TIME_HINT.style.display = 'block';
+    return;
+  }
+  times.forEach(function (t) {
+    var opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = fmt12(t);
+    timeSel.appendChild(opt);
+  });
+  TIME_HINT.textContent = 'Available times shown within the doctor\'s working hours.';
+  TIME_HINT.style.display = 'block';
+}
+
 function filterDoctors() {
   var spec = document.getElementById('specialty_filter').value;
   var sel = document.getElementById('doctor_id');
@@ -85,6 +207,7 @@ function filterDoctors() {
     opt.style.display = (!spec || specialties.indexOf(spec) !== -1) ? '' : 'none';
   }
   sel.value = '';
+  showDoctorHours();
 }
 </script>
 {% endblock %}

@@ -45,7 +45,7 @@
             <span style="color:var(--color-text-muted);">—</span>
             {% endfor %}
           </td>
-          <td>${{ doc.consultation_fee }}</td>
+          <td>E£{{ doc.consultation_fee }}</td>
           <td>{% if doc.is_active %}<span style="color:var(--color-success);font-weight:600;">Active</span>{% else %}<span style="color:var(--color-danger);font-weight:600;">Inactive</span>{% endif %}</td>
           <td>{% if doc.user.is_active %}<span style="color:var(--color-success);font-weight:600;">Active</span>{% else %}<span style="color:var(--color-danger);font-weight:600;">Inactive</span>{% endif %}</td>
           <td>

@@ -108,6 +108,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     AppButton.primary('Sign In', onPressed: _login, isLoading: auth.isLoading),
                     const SizedBox(height: 16),
                     TextButton(
+                      onPressed: () => context.go('/forgot-password'),
+                      child: const Text('Forgot password?',
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                    ),
+                    TextButton(
                       onPressed: () => context.go('/register'),
                       child: Text("Don't have an account? Create one",
                         style: TextStyle(color: AppColors.primary, fontSize: 13)),

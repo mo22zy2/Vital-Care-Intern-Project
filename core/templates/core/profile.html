@@ -93,6 +93,10 @@
               <button type="submit" class="btn btn-sm btn-ghost" title="Set as primary">★</button>
             </form>
             {% endif %}
+            <button type="button" class="btn btn-sm btn-ghost" title="Edit"
+              onclick="editEc('{{ ec.id }}','{{ ec.full_name|escapejs }}','{{ ec.relationship }}','{{ ec.phone|escapejs }}','{{ ec.alternate_phone|escapejs }}','{{ ec.email|escapejs }}','{{ ec.address|escapejs }}');this.form.reset();">
+              ✎
+            </button>
             <form method="POST" style="display:inline;" onsubmit="return confirm('Remove {{ ec.full_name }} as emergency contact?');">
               {% csrf_token %}
               <input type="hidden" name="action" value="delete_ec">
@@ -105,11 +109,12 @@
       </div>
       {% endif %}
 
-      <details style="font-size:0.8125rem;">
-        <summary style="cursor:pointer;color:var(--color-primary);font-weight:500;">+ Add Emergency Contact</summary>
-        <form method="POST" style="margin-top:12px;">
+      <details style="font-size:0.8125rem;" id="ec_details">
+        <summary style="cursor:pointer;color:var(--color-primary);font-weight:500;" id="ec_summary">+ Add Emergency Contact</summary>
+        <form method="POST" style="margin-top:12px;" id="ec_form">
           {% csrf_token %}
-          <input type="hidden" name="action" value="add_ec">
+          <input type="hidden" name="action" value="add_ec" id="ec_action">
+          <input type="hidden" name="ec_id" id="ec_id" value="">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div class="form-group">
               <label class="form-label" for="ec_name">Full Name</label>
@@ -135,13 +140,45 @@
               <input class="form-input" type="tel" id="ec_alt_phone" name="ec_alt_phone" placeholder="Alternate phone">
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="ec_email">Email</label>
-            <input class="form-input" type="email" id="ec_email" name="ec_email" placeholder="contact@email.com">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="ec_email">Email</label>
+              <input class="form-input" type="email" id="ec_email" name="ec_email" placeholder="contact@email.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ec_address">Address</label>
+              <input class="form-input" type="text" id="ec_address" name="ec_address" placeholder="Address">
+            </div>
           </div>
-          <button type="submit" class="btn btn-sm btn-primary">Add Contact</button>
+          <button type="submit" class="btn btn-sm btn-primary" id="ec_submit">Add Contact</button>
+          <button type="button" class="btn btn-sm btn-ghost" id="ec_cancel" style="display:none;" onclick="resetEcForm()">Cancel</button>
         </form>
       </details>
+      <script>
+      function editEc(id, name, rel, phone, alt, email, addr) {
+        document.getElementById('ec_action').value = 'edit_ec';
+        document.getElementById('ec_id').value = id;
+        document.getElementById('ec_name').value = name;
+        document.getElementById('ec_relationship').value = rel;
+        document.getElementById('ec_phone').value = phone;
+        document.getElementById('ec_alt_phone').value = alt;
+        document.getElementById('ec_email').value = email;
+        document.getElementById('ec_address').value = addr;
+        document.getElementById('ec_summary').textContent = '✎ Edit Emergency Contact';
+        document.getElementById('ec_submit').textContent = 'Save Changes';
+        document.getElementById('ec_cancel').style.display = '';
+        document.getElementById('ec_details').open = true;
+        window.scrollTo({ top: document.getElementById('ec_details').offsetTop - 80, behavior: 'smooth' });
+      }
+      function resetEcForm() {
+        document.getElementById('ec_action').value = 'add_ec';
+        document.getElementById('ec_id').value = '';
+        document.getElementById('ec_form').reset();
+        document.getElementById('ec_summary').textContent = '+ Add Emergency Contact';
+        document.getElementById('ec_submit').textContent = 'Add Contact';
+        document.getElementById('ec_cancel').style.display = 'none';
+      }
+      </script>
     </div>
   </div>
 

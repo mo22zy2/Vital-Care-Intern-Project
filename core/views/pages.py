@@ -1,12 +1,17 @@
 import json
 import logging
+from decimal import Decimal, InvalidOperation
+from functools import wraps
 
+import requests
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from ..supabase_client import get_supabase
@@ -14,6 +19,43 @@ from ..telegram import send_telegram
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+
+def role_required(*roles):
+    """Restrict a view to specific user roles; everyone else goes to dashboard."""
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped(request, *args, **kwargs):
+            if request.user.role not in roles:
+                return redirect("dashboard")
+            return view_func(request, *args, **kwargs)
+        return login_required(_wrapped)
+    return decorator
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def chat_proxy(request):
+    """Same-origin proxy to the RAG service (avoids browser CORS preflight)."""
+    rag_endpoint = "http://localhost:9000/api/v1/nlp/index/answer/21"
+
+    try:
+        payload = json.loads(request.body or b"{}")
+    except ValueError:
+        return JsonResponse({"error": "Invalid JSON body."}, status=400)
+
+    try:
+        resp = requests.post(rag_endpoint, json=payload, timeout=120)
+    except requests.RequestException as exc:
+        logger.warning("RAG proxy failed: %s", exc)
+        return JsonResponse({"error": "Assistant service unreachable."}, status=502)
+
+    try:
+        data = resp.json()
+    except ValueError:
+        return JsonResponse({"error": "Assistant returned invalid data."}, status=502)
+    return JsonResponse(data, status=resp.status_code)
 
 
 def landing_page(request):
@@ -74,6 +116,95 @@ def login_page(request):
                 error = "Login failed. Please check your credentials."
 
     return render(request, "core/auth/login.html", {"error": error})
+
+
+# ──────────────────────────────────────────────
+#  AUTH — FORGOT PASSWORD (OTP)
+# ──────────────────────────────────────────────
+
+@require_http_methods(["GET", "POST"])
+def forgot_password(request):
+    from core.models.accounts.models import PasswordResetOTP
+
+    if request.user.is_authenticated:
+        return redirect("dashboard")
+
+    error = None
+    success = None
+    dev_code = None
+    email = ""
+
+    if request.method == "POST":
+        email = request.POST.get("email", "").strip()
+        user = User.objects.filter(email=email).first()
+        if user:
+            from datetime import timedelta
+            import random
+            code = f"{random.randint(100000, 999999)}"
+            PasswordResetOTP.objects.create(
+                user=user,
+                code=code,
+                delivery_method="EMAIL",
+                expires_at=timezone.now() + timedelta(minutes=15),
+            )
+            send_telegram(f"🔑 Password reset OTP requested for {email}")
+            success = "If that email exists, a reset code has been generated."
+            dev_code = code
+        else:
+            success = "If that email exists, a reset code has been generated."
+
+    return render(request, "core/auth/forgot_password.html", {
+        "error": error,
+        "success": success,
+        "dev_code": dev_code,
+        "email": email,
+    })
+
+
+@require_http_methods(["GET", "POST"])
+def forgot_password_verify(request):
+    from core.models.accounts.models import PasswordResetOTP
+
+    if request.user.is_authenticated:
+        return redirect("dashboard")
+
+    error = None
+    success = None
+    email = request.POST.get("email", "")
+
+    if request.method == "POST":
+        email = request.POST.get("email", "").strip()
+        code = request.POST.get("code", "").strip()
+        new_password = request.POST.get("new_password", "")
+        confirm = request.POST.get("confirm_password", "")
+
+        if len(new_password) < 8:
+            error = "Password must be at least 8 characters."
+        elif new_password != confirm:
+            error = "Passwords do not match."
+        else:
+            user = User.objects.filter(email=email).first()
+            otp = PasswordResetOTP.objects.filter(
+                user=user, code=code, is_used=False
+            ).first() if user else None
+            if not otp or not otp.is_valid():
+                error = "Invalid or expired code."
+            else:
+                user.set_password(new_password)
+                user.save()
+                otp.is_used = True
+                otp.save()
+                send_telegram(f"🔑 Password reset completed for {email}")
+                success = "Password reset successfully. You can now sign in."
+                return render(request, "core/auth/forgot_password_verify.html", {
+                    "error": None, "success": success, "email": email,
+                })
+
+    return render(request, "core/auth/forgot_password_verify.html", {
+        "error": error,
+        "success": None,
+        "email": email,
+    })
 
 
 @require_http_methods(["GET", "POST"])
@@ -177,6 +308,16 @@ def logout_page(request):
 
 @login_required
 def dashboard(request):
+    role = request.user.role
+    if role == "DOCTOR":
+        return redirect("doctor_dashboard")
+    if role == "PHARMACIST":
+        return redirect("pharmacist_dashboard")
+    if role == "LAB_TECH":
+        return redirect("labtech_dashboard")
+    if role in ("ADMIN", "STAFF"):
+        return redirect("admin_dashboard")
+
     now = timezone.now()
     today = now.date()
     yesterday = today - timezone.timedelta(days=1)
@@ -184,27 +325,17 @@ def dashboard(request):
     last_month_start = (month_start - timezone.timedelta(days=1)).replace(day=1)
 
     from core.models.appointments.models import Appointment
-    from core.models.billing.models import Invoice
     from core.models.pharmacy.models import PharmacyOrder
 
     user = request.user
-    role = user.role
-    is_admin = role in ("ADMIN", "STAFF")
 
     upcoming = Appointment.objects.filter(
         appointment_date__gte=today, status__in=["PENDING", "CONFIRMED"]
-    )
-    if role == "PATIENT":
-        upcoming = upcoming.filter(patient=user)
-    elif role == "DOCTOR":
-        upcoming = upcoming.filter(doctor__user=user)
+    ).filter(patient=user)
+    total_upcoming = upcoming.count()
     upcoming = upcoming.select_related("patient", "doctor__user")[:5]
 
-    appt_scope = Appointment.objects.all()
-    if role == "PATIENT":
-        appt_scope = appt_scope.filter(patient=user)
-    elif role == "DOCTOR":
-        appt_scope = appt_scope.filter(doctor__user=user)
+    appt_scope = Appointment.objects.filter(patient=user)
 
     total_appts_today = appt_scope.filter(appointment_date=today).count()
     total_appts_yesterday = appt_scope.filter(appointment_date=yesterday).count()
@@ -220,37 +351,13 @@ def dashboard(request):
         role="DOCTOR", is_active=True
     ).count()
 
-    order_scope = PharmacyOrder.objects.all()
-    if role == "PATIENT":
-        order_scope = order_scope.filter(patient=user)
+    order_scope = PharmacyOrder.objects.filter(patient=user)
 
     total_pending_orders = order_scope.filter(status="PENDING").count()
     pending_orders_last_week = order_scope.filter(
         status="PENDING", ordered_at__gte=now - timezone.timedelta(days=7)
     ).count()
     orders_change = total_pending_orders - pending_orders_last_week
-
-    if is_admin:
-        revenue_this_month = (
-            Invoice.objects.filter(status="PAID", issue_date__gte=month_start)
-            .aggregate(s=Sum("total_amount"))["s"]
-            or 0
-        )
-        revenue_last_month = (
-            Invoice.objects.filter(status="PAID", issue_date__gte=last_month_start, issue_date__lt=month_start)
-            .aggregate(s=Sum("total_amount"))["s"]
-            or 0
-        )
-    else:
-        revenue_this_month = 0
-        revenue_last_month = 0
-
-    if revenue_last_month:
-        revenue_change = round(
-            (revenue_this_month - revenue_last_month) / revenue_last_month * 100
-        )
-    else:
-        revenue_change = 100 if revenue_this_month else 0
 
     recent_activities = []
 
@@ -279,8 +386,7 @@ def dashboard(request):
         "doctors_change": total_doctors_active,
         "pending_orders": total_pending_orders,
         "orders_change": orders_change,
-        "total_revenue": int(revenue_this_month),
-        "revenue_change": revenue_change,
+        "total_upcoming": total_upcoming,
         "upcoming_appointments": upcoming,
         "recent_activities": recent_activities,
     }
@@ -292,7 +398,7 @@ def doctor_detail(request, doctor_id):
     from core.models.doctors.models import Doctor
 
     doctor = get_object_or_404(
-        Doctor.objects.filter(is_active=True).select_related("user").prefetch_related("specialties"),
+        Doctor.objects.filter(is_active=True).select_related("user").prefetch_related("specialties", "availabilities"),
         id=doctor_id,
     )
     from core.models.appointments.models import Appointment
@@ -339,7 +445,7 @@ def doctor_list(request):
     return render(request, "core/doctors/list.html", context)
 
 
-@login_required
+@role_required("PATIENT")
 def appointment_list(request):
     query = request.GET.get("q", "")
     status_filter = request.GET.get("status", "")
@@ -384,12 +490,13 @@ def appointment_list(request):
     return render(request, "core/appointments/list.html", context)
 
 
-@login_required
+@role_required("PATIENT")
 def book_appointment(request):
     from core.models.appointments.models import Appointment
     from core.models.doctors.models import Doctor, Specialty, DoctorAvailability
 
     error = None
+    hours_doctor = None
     specialties = Specialty.objects.all()
     doctors_qs = Doctor.objects.filter(is_active=True).select_related("user").prefetch_related("specialties", "availabilities")
     preselected_doctor = request.GET.get("doctor", "")
@@ -408,6 +515,8 @@ def book_appointment(request):
             error = "Date and time are required."
         elif appointment_date < str(timezone.now().date()):
             error = "Appointment date cannot be in the past."
+        elif appointment_date == str(timezone.localtime().date()) and appointment_time <= timezone.localtime().strftime("%H:%M"):
+            error = "Appointment time cannot be in the past."
         else:
             from datetime import datetime
             try:
@@ -416,10 +525,12 @@ def book_appointment(request):
                 weekday = apt_date.weekday()
                 slots = doctor.availabilities.filter(weekday=weekday, is_available=True)
                 if not slots.exists():
+                    hours_doctor = doctor
                     error = "The doctor is not available on this day."
                 else:
-                    in_slot = any(s.start_time <= apt_time <= s.end_time for s in slots)
+                    in_slot = any(s.covers(apt_time) for s in slots)
                     if not in_slot:
+                        hours_doctor = doctor
                         error = "The selected time is outside the doctor's working hours."
                     else:
                         try:
@@ -433,7 +544,6 @@ def book_appointment(request):
                             )
                             from ..notify import notify_appointment_booked
                             notify_appointment_booked(apt)
-                            send_telegram(f"📅 Appointment booked: {request.user.email} with Dr. {doctor.user.get_full_name()} on {appointment_date}")
                             return redirect("appointment_list")
                         except Exception:
                             error = "This time slot is already booked. Please choose another time."
@@ -447,10 +557,23 @@ def book_appointment(request):
         "doctors": doctors_qs,
         "reasons": Appointment.Reason.choices,
         "preselected_doctor": preselected_doctor,
+        "availability_json": json.dumps({
+            str(d.id): [
+                {
+                    "weekday": a.weekday,
+                    "start": a.start_time.strftime("%H:%M"),
+                    "end": a.end_time.strftime("%H:%M"),
+                }
+                for a in d.availabilities.filter(is_available=True).order_by("weekday", "start_time")
+            ]
+            for d in doctors_qs
+        }),
+        "hours_doctor": hours_doctor,
+        "doctor_hours": hours_doctor.availabilities.filter(is_available=True).order_by("weekday", "start_time") if hours_doctor else None,
     })
 
 
-@login_required
+@role_required("PATIENT")
 def cancel_appointment(request, appointment_id):
     from core.models.appointments.models import Appointment
 
@@ -465,12 +588,131 @@ def cancel_appointment(request, appointment_id):
         apt.save()
         from ..notify import notify_appointment_status_changed
         notify_appointment_status_changed(apt)
-        send_telegram(f"❌ Appointment cancelled: {request.user.email} — {reason}")
         return redirect("appointment_list")
 
     return render(request, "core/appointments/cancel.html", {
         "active_tab": "appointments",
         "appointment": apt,
+    })
+
+
+# ──────────────────────────────────────────────
+#  PATIENT — INSURANCE
+# ──────────────────────────────────────────────
+
+@role_required("PATIENT")
+def insurance_list(request):
+    from core.models.insurance.models import InsuranceProvider, HealthInsurance, InsuranceClaim
+
+    providers = InsuranceProvider.objects.filter(is_active=True)
+    policies = HealthInsurance.objects.filter(patient=request.user).select_related("provider").order_by("-created_at")
+    claims = InsuranceClaim.objects.filter(insurance__patient=request.user).select_related("invoice", "insurance").order_by("-submitted_at")
+    return render(request, "core/insurance/list.html", {
+        "active_tab": "insurance",
+        "providers": providers,
+        "policies": policies,
+        "claims": claims,
+    })
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def insurance_policy_add(request):
+    from core.models.insurance.models import InsuranceProvider, HealthInsurance
+
+    if request.user.role != "PATIENT":
+        return redirect("dashboard")
+
+    error = None
+    providers = InsuranceProvider.objects.filter(is_active=True)
+
+    if request.method == "POST":
+        provider_id = request.POST.get("provider_id")
+        policy_number = request.POST.get("policy_number", "").strip()
+        group_number = request.POST.get("group_number", "").strip()
+        coverage_details = request.POST.get("coverage_details", "").strip()
+        coverage_percentage = request.POST.get("coverage_percentage", "0")
+        valid_from = request.POST.get("valid_from")
+        valid_to = request.POST.get("valid_to")
+
+        if not provider_id or not policy_number or not valid_from or not valid_to:
+            error = "Provider, policy number, and dates are required."
+        elif valid_to <= valid_from:
+            error = "Policy end date must be after start date."
+        else:
+            try:
+                coverage = Decimal(coverage_percentage)
+                if coverage < 0 or coverage > 100:
+                    raise ValueError
+            except (ValueError, InvalidOperation):
+                error = "Coverage percentage must be between 0 and 100."
+            else:
+                provider = get_object_or_404(InsuranceProvider, id=provider_id)
+                HealthInsurance.objects.create(
+                    patient=request.user,
+                    provider=provider,
+                    policy_number=policy_number,
+                    group_number=group_number,
+                    coverage_details=coverage_details,
+                    coverage_percentage=coverage,
+                    valid_from=valid_from,
+                    valid_to=valid_to,
+                )
+                send_telegram(f"🏥 Insurance policy added: {request.user.email} — {provider.name} ({policy_number})")
+                return redirect("insurance_list")
+
+    return render(request, "core/insurance/policy_add.html", {
+        "active_tab": "insurance",
+        "providers": providers,
+        "error": error,
+    })
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def insurance_claim_new(request):
+    from core.models.insurance.models import HealthInsurance, InsuranceClaim
+    from core.models.billing.models import Invoice
+
+    if request.user.role != "PATIENT":
+        return redirect("dashboard")
+
+    error = None
+    policies = HealthInsurance.objects.filter(patient=request.user).select_related("provider")
+    invoices = Invoice.objects.filter(patient=request.user)
+
+    if request.method == "POST":
+        policy_id = request.POST.get("policy_id")
+        invoice_id = request.POST.get("invoice_id")
+        claim_amount = request.POST.get("claim_amount", "0")
+        notes = request.POST.get("notes", "").strip()
+
+        policy = HealthInsurance.objects.filter(id=policy_id, patient=request.user).first()
+        invoice = Invoice.objects.filter(id=invoice_id, patient=request.user).first()
+        if not policy or not invoice:
+            error = "Invalid policy or invoice selected."
+        else:
+            try:
+                amount = Decimal(claim_amount)
+                if amount <= 0:
+                    raise ValueError
+            except (ValueError, InvalidOperation):
+                error = "Claim amount must be a positive number."
+            else:
+                InsuranceClaim.objects.create(
+                    insurance=policy,
+                    invoice=invoice,
+                    claim_amount=amount,
+                    notes=notes,
+                )
+                send_telegram(f"🏥 Insurance claim submitted: {request.user.email} — E£{amount} on invoice {invoice.invoice_number}")
+                return redirect("insurance_list")
+
+    return render(request, "core/insurance/claim_new.html", {
+        "active_tab": "insurance",
+        "policies": policies,
+        "invoices": invoices,
+        "error": error,
     })
 
 
@@ -527,7 +769,6 @@ def doctor_appointments(request):
             apt.save()
             from ..notify import notify_appointment_status_changed
             notify_appointment_status_changed(apt)
-            send_telegram(f"✅ Appointment confirmed by Dr. {doctor.user.get_full_name()}")
         elif action == "complete":
             apt.status = "COMPLETED"
             apt.save()
@@ -594,7 +835,7 @@ def doctor_availability(request):
 #  LAB TEST PATIENT UI
 # ──────────────────────────────────────────────
 
-@login_required
+@role_required("PATIENT")
 def lab_book_test(request):
     from core.models.laboratory.models import LabTest, LabTestBooking
 
@@ -632,7 +873,7 @@ def lab_book_test(request):
     })
 
 
-@login_required
+@role_required("PATIENT")
 def lab_booking_history(request):
     from core.models.laboratory.models import LabTestBooking
     from django.core.paginator import Paginator
@@ -647,7 +888,26 @@ def lab_booking_history(request):
     })
 
 
-@login_required
+@role_required("PATIENT")
+def lab_result_detail(request, booking_id):
+    from core.models.laboratory.models import LabTestBooking
+
+    booking = (
+        LabTestBooking.objects.filter(id=booking_id, patient=request.user)
+        .select_related("lab_test", "result", "result__reviewed_by")
+        .first()
+    )
+    if not booking or not booking.result:
+        raise Http404("Lab result not found.")
+
+    return render(request, "core/laboratory/result_detail.html", {
+        "active_tab": "laboratory",
+        "booking": booking,
+        "result": booking.result,
+    })
+
+
+@role_required("PATIENT")
 def create_order(request):
     from core.models.pharmacy.models import Medicine, PharmacyOrder, PharmacyOrderItem
     from decimal import Decimal
@@ -680,19 +940,15 @@ def create_order(request):
             error = "Please select at least one medicine with a valid quantity."
         if not error:
             order = PharmacyOrder.objects.create(patient=request.user)
-            total = Decimal("0.00")
             for med, qty in items:
-                line_total = med.price * qty
                 PharmacyOrderItem.objects.create(
                     order=order, medicine=med,
                     quantity=qty, unit_price=med.price,
                 )
                 med.stock_quantity -= qty
                 med.save()
-                total += line_total
             from ..notify import notify_order_placed
             notify_order_placed(order)
-            send_telegram(f"📦 Order placed: {request.user.email} — {len(items)} items, ${total}")
             return redirect("order_detail", order_id=order.id)
 
     return render(request, "core/pharmacy/create_order.html", {
@@ -703,7 +959,7 @@ def create_order(request):
     })
 
 
-@login_required
+@role_required("PATIENT")
 def order_detail(request, order_id):
     from core.models.pharmacy.models import PharmacyOrder
 
@@ -722,7 +978,7 @@ def order_detail(request, order_id):
     })
 
 
-@login_required
+@role_required("PATIENT")
 def order_history(request):
     from core.models.pharmacy.models import PharmacyOrder
     from django.core.paginator import Paginator
@@ -765,7 +1021,7 @@ def medicine_list(request):
     return render(request, "core/pharmacy/medicines.html", context)
 
 
-@login_required
+@role_required("PATIENT")
 def invoice_list(request):
     query = request.GET.get("q", "")
     status_filter = request.GET.get("status", "")
@@ -799,6 +1055,30 @@ def invoice_list(request):
 
 
 @login_required
+def invoice_detail(request, invoice_id):
+    from core.models.billing.models import Invoice
+    from core.models.insurance.models import InsuranceClaim
+    from core.models.payments.models import Payment
+
+    invoice = get_object_or_404(
+        Invoice.objects.select_related("patient", "appointment__doctor__user").prefetch_related("items"),
+        id=invoice_id,
+    )
+    if request.user.role == "PATIENT" and invoice.patient_id != request.user.id:
+        return redirect("invoice_list")
+
+    claims = InsuranceClaim.objects.filter(invoice=invoice).select_related("insurance__provider")
+    payments = Payment.objects.filter(invoice=invoice).order_by("-paid_at")
+
+    return render(request, "core/billing/invoice_detail.html", {
+        "active_tab": "billing",
+        "invoice": invoice,
+        "claims": claims,
+        "payments": payments,
+    })
+
+
+@role_required("PATIENT")
 def lab_test_list(request):
     from core.models.laboratory.models import LabTest, LabTestBooking
 
@@ -818,7 +1098,7 @@ def lab_test_list(request):
     return render(request, "core/laboratory/tests.html", context)
 
 
-@login_required
+@role_required("PATIENT")
 def medical_record_list(request):
     from core.models.medical_records.models import PatientRecord
     from django.core.paginator import Paginator
@@ -844,9 +1124,9 @@ def medical_record_list(request):
     })
 
 
-@login_required
+@role_required("PATIENT")
 def prescription_list(request):
-    from core.models.prescriptions.models import Prescription
+    from core.models.prescriptions.models import Prescription, PrescriptionRefill
     from django.core.paginator import Paginator
 
     q = request.GET.get("q", "")
@@ -854,7 +1134,7 @@ def prescription_list(request):
     prescriptions = (
         Prescription.objects.filter(patient=request.user)
         .select_related("doctor__user")
-        .prefetch_related("items__medicine")
+        .prefetch_related("items__medicine", "items__refills")
     )
     if q:
         prescriptions = prescriptions.filter(
@@ -867,17 +1147,39 @@ def prescription_list(request):
     page_num = request.GET.get("page", 1)
     paginator = Paginator(prescriptions, 10)
     page_obj = paginator.get_page(page_num)
+    refill_history = (
+        PrescriptionRefill.objects.filter(prescription_item__prescription__patient=request.user)
+        .select_related("prescription_item__medicine", "prescription_item__prescription__doctor__user")
+        .order_by("-requested_at")[:20]
+    )
     return render(request, "core/prescriptions/list.html", {
         "active_tab": "prescriptions",
         "prescriptions": page_obj, "page_obj": page_obj, "query": q,
         "selected_status": status_filter,
+        "refill_history": refill_history,
     })
+
+
+@login_required
+@require_http_methods(["POST"])
+def prescription_refill_request(request):
+    from core.models.prescriptions.models import PrescriptionItem, PrescriptionRefill
+
+    item_id = request.POST.get("item_id", "")
+    item = PrescriptionItem.objects.filter(
+        id=item_id,
+        prescription__patient=request.user,
+        prescription__status="ACTIVE",
+    ).first()
+    if item:
+        PrescriptionRefill.objects.create(prescription_item=item)
+        send_telegram(f"💊 Refill requested by {request.user.email}: {item.medicine.name if item.medicine else 'item'} ({item.dosage})")
+    return redirect("prescription_list")
 
 
 @login_required
 def notification_list(request):
     from core.models.notifications.models import Notification, HealthTip
-
     q = request.GET.get("q", "")
     type_filter = request.GET.get("type", "")
 
@@ -926,7 +1228,6 @@ def doctor_write_prescription(request):
 
     if request.method == "POST":
         patient_id = request.POST.get("patient_id")
-        appointment_id = request.POST.get("appointment_id", "")
         notes = request.POST.get("notes", "")
         med_ids = request.POST.getlist("medicine_id")
         dosages = request.POST.getlist("dosage")
@@ -940,7 +1241,6 @@ def doctor_write_prescription(request):
             rx = Prescription.objects.create(
                 patient_id=patient_id,
                 doctor=doctor,
-                appointment_id=appointment_id or None,
                 notes=notes,
             )
             for mid, dosage, dur, qty, inst in zip(med_ids, dosages, durations, quantities, instructions):
@@ -1022,6 +1322,7 @@ def pharmacist_dashboard(request):
     from core.models.pharmacy.models import PharmacyOrder, Medicine
 
     pending = PharmacyOrder.objects.filter(status="PENDING").select_related("patient").prefetch_related("items__medicine").order_by("-ordered_at")
+    active = PharmacyOrder.objects.exclude(status__in=["DELIVERED", "CANCELLED"]).select_related("patient").prefetch_related("items__medicine").order_by("-ordered_at")
     low_stock = Medicine.objects.filter(is_active=True, stock_quantity__lt=10)
     total_orders = PharmacyOrder.objects.count()
     total_medicines = Medicine.objects.filter(is_active=True).count()
@@ -1045,6 +1346,7 @@ def pharmacist_dashboard(request):
     return render(request, "core/pharmacist/dashboard.html", {
         "active_tab": "pharmacist_dashboard",
         "pending_orders": pending,
+        "active_orders": active,
         "low_stock": low_stock,
         "total_orders": total_orders,
         "total_medicines": total_medicines,
@@ -1132,7 +1434,7 @@ def password_change(request):
 #  PATIENT MEDICAL TIMELINE
 # ──────────────────────────────────────────────
 
-@login_required
+@role_required("PATIENT")
 def patient_timeline(request):
     from core.models.appointments.models import Appointment
     from core.models.medical_records.models import PatientRecord
@@ -1288,6 +1590,30 @@ def profile(request):
                     user.primary_emergency_contact = ec
                     user.save(update_fields=["primary_emergency_contact"])
                 success = "Emergency contact added."
+
+        elif action == "edit_ec":
+            ec_id = request.POST.get("ec_id")
+            ec_name = request.POST.get("ec_name", "").strip()
+            ec_relationship = request.POST.get("ec_relationship", "")
+            ec_phone = request.POST.get("ec_phone", "").strip()
+            ec_alt_phone = request.POST.get("ec_alt_phone", "").strip()
+            ec_email = request.POST.get("ec_email", "").strip()
+            ec_address = request.POST.get("ec_address", "").strip()
+
+            ec = EmergencyContact.objects.filter(id=ec_id, patient=user).first()
+            if not ec:
+                error = "Contact not found."
+            elif not ec_name or not ec_phone:
+                error = "Emergency contact name and phone are required."
+            else:
+                ec.full_name = ec_name
+                ec.relationship = ec_relationship or "OTHER"
+                ec.phone = ec_phone
+                ec.alternate_phone = ec_alt_phone
+                ec.email = ec_email
+                ec.address = ec_address
+                ec.save()
+                success = "Emergency contact updated."
 
         elif action == "delete_ec":
             ec_id = request.POST.get("ec_id")

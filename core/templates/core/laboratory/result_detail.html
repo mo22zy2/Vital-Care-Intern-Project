@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Lab Result — {{ booking.lab_test.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-content">
+    <h1>Lab Result</h1>
+    <p>{{ booking.lab_test.name }} · {{ booking.scheduled_date|date:"M d, Y" }}</p>
+  </div>
+  <a href="{% url 'lab_booking_history' %}" class="btn btn-primary">← Back to History</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3>{{ booking.lab_test.name }}</h3>
+    <span class="badge badge-success">{{ booking.get_status_display }}</span>
+  </div>
+  <div class="card-body" style="font-size:0.875rem;">
+    {% if booking.lab_test.description %}
+    <div class="form-group">
+      <label class="form-label">About this test</label>
+      <p style="color:var(--color-text-muted);">{{ booking.lab_test.description }}</p>
+    </div>
+    {% endif %}
+    <div class="form-group">
+      <label class="form-label">Result Summary</label>
+      <div style="padding:16px;background:var(--color-bg-secondary);border:1px solid var(--color-border);border-radius:var(--radius-sm);white-space:pre-wrap;line-height:1.6;">{{ result.result_summary }}</div>
+    </div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;color:var(--color-text-muted);font-size:0.8125rem;">
+      <span>Released: {{ result.released_at|date:"M d, Y H:i" }}</span>
+      {% if result.reviewed_by %}
+      <span>Reviewed by: Dr. {{ result.reviewed_by.user.get_full_name }}</span>
+      {% endif %}
+      {% if result.result_file %}
+      <span><a href="{{ result.result_file.url }}" target="_blank">Download Report</a></span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

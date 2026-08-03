@@ -28,7 +28,7 @@
               <option value="">— Select —</option>
               {% for m in medicines %}
               <option value="{{ m.id }}" data-price="{{ m.price }}" data-stock="{{ m.stock_quantity }}">
-                {{ m.name }} ({{ m.strength }}) — ${{ m.price }} — Stock: {{ m.stock_quantity }}
+                {{ m.name }} ({{ m.strength }}) — E£{{ m.price }} — Stock: {{ m.stock_quantity }}
               </option>
               {% endfor %}
             </select>

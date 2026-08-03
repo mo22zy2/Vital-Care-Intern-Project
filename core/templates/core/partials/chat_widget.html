@@ -1,0 +1,146 @@
+{% load static %}
+<style>
+  .vc-chat-fab { position: fixed; right: 20px; bottom: 20px; z-index: 9999; width: 56px; height: 56px; border-radius: 50%; border: none; background: #0b5a8a; color: #fff; font-size: 24px; cursor: pointer; box-shadow: 0 4px 14px rgba(2, 44, 72, 0.35); display: flex; align-items: center; justify-content: center; }
+  .vc-chat-fab:hover { background: #094a70; }
+  .vc-chat-panel { position: fixed; right: 20px; bottom: 88px; z-index: 9998; width: 380px; max-width: calc(100vw - 32px); height: 520px; max-height: calc(100vh - 120px); background: #fff; border-radius: 16px; box-shadow: 0 12px 40px rgba(2, 44, 72, 0.25); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e2e8f0; }
+  .vc-chat-header { background: #0b5a8a; color: #fff; padding: 14px 16px; display: flex; align-items: center; gap: 10px; }
+  .vc-chat-header strong { font-size: 0.95rem; }
+  .vc-chat-header .vc-chat-sub { font-size: 0.72rem; opacity: 0.75; }
+  .vc-chat-close { margin-left: auto; background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; }
+  .vc-chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .vc-msg { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; }
+  .vc-msg.user { align-self: flex-end; background: #0b5a8a; color: #fff; border-bottom-right-radius: 4px; }
+  .vc-msg.bot { align-self: flex-start; background: #f1f5f9; color: #1e293b; border-bottom-left-radius: 4px; }
+  .vc-msg.error { align-self: flex-start; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+  .vc-typing { align-self: flex-start; background: #f1f5f9; border-radius: 14px; padding: 12px 16px; }
+  .vc-typing span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; margin-right: 4px; animation: vcBlink 1.2s infinite; }
+  .vc-typing span:nth-child(2) { animation-delay: 0.2s; }
+  .vc-typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes vcBlink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+  .vc-chat-suggestions { display: flex; gap: 8px; padding: 10px 12px 0; flex-wrap: wrap; }
+  .vc-suggestion { font-size: 0.72rem; padding: 5px 12px; border-radius: 20px; border: 1px solid #bae6fd; background: #f0f9ff; color: #0369a1; cursor: pointer; }
+  .vc-suggestion:hover { background: #e0f2fe; }
+  .vc-chat-composer { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #e2e8f0; }
+  .vc-chat-composer input { flex: 1; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 20px; font-size: 0.85rem; outline: none; }
+  .vc-chat-composer input:focus { border-color: #0b5a8a; }
+  .vc-chat-composer button { border: none; background: #0b5a8a; color: #fff; border-radius: 20px; padding: 9px 16px; font-size: 0.85rem; cursor: pointer; }
+  .vc-chat-composer button:disabled { opacity: 0.5; cursor: default; }
+</style>
+
+<button type="button" class="vc-chat-fab" id="vcChatFab" title="AI Assistant">🤖</button>
+
+<div class="vc-chat-panel" id="vcChatPanel" style="display:none;">
+  <div class="vc-chat-header">
+    <span style="font-size:20px;">🤖</span>
+    <div>
+      <strong>VitalCare Assistant</strong>
+      <div class="vc-chat-sub">Powered by the hospital knowledge base</div>
+    </div>
+    <button type="button" class="vc-chat-close" id="vcChatClose" title="Close">✕</button>
+  </div>
+  <div class="vc-chat-messages" id="vcChatMessages"></div>
+  <div class="vc-chat-suggestions" id="vcChatSuggestions">
+    <button type="button" class="vc-suggestion" data-q="What doctors are available?">What doctors are available?</button>
+    <button type="button" class="vc-suggestion" data-q="Do you accept insurance?">Do you accept insurance?</button>
+    <button type="button" class="vc-suggestion" data-q="How can I book an appointment?">How can I book an appointment?</button>
+  </div>
+  <div class="vc-chat-composer">
+    <input type="text" id="vcChatInput" placeholder="Ask the VitalCare assistant..." autocomplete="off">
+    <button type="button" id="vcChatSend">Send</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  var endpoint = "{{ rag_endpoint }}";
+  var fab = document.getElementById('vcChatFab');
+  var panel = document.getElementById('vcChatPanel');
+  var messagesEl = document.getElementById('vcChatMessages');
+  var inputEl = document.getElementById('vcChatInput');
+  var sendBtn = document.getElementById('vcChatSend');
+  var opened = false;
+  var busy = false;
+
+  function escapeHtml(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function render(text) {
+    return escapeHtml(text || '')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function addMessage(text, cls) {
+    var div = document.createElement('div');
+    div.className = 'vc-msg ' + cls;
+    div.innerHTML = cls === 'user' ? escapeHtml(text) : render(text);
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function setTyping(on) {
+    var el = document.getElementById('vcTyping');
+    if (on && !el) {
+      el = document.createElement('div');
+      el.id = 'vcTyping';
+      el.className = 'vc-typing';
+      el.innerHTML = '<span></span><span></span><span></span>';
+      messagesEl.appendChild(el);
+    } else if (!on && el) {
+      el.remove();
+    }
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function send(text) {
+    var q = (text || inputEl.value).trim();
+    if (!q || busy) return;
+    inputEl.value = '';
+    addMessage(q, 'user');
+    busy = true;
+    sendBtn.disabled = true;
+    setTyping(true);
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: q, limit: 5 }),
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error('RAG request failed: ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        addMessage(data.answer || 'Sorry, I could not find an answer.', 'bot');
+      })
+      .catch(function () {
+        addMessage('Sorry, the assistant is unreachable right now. Please try again later.', 'error');
+      })
+      .finally(function () {
+        busy = false;
+        sendBtn.disabled = false;
+        setTyping(false);
+        inputEl.focus();
+      });
+  }
+
+  fab.addEventListener('click', function () {
+    opened = !opened;
+    panel.style.display = opened ? 'flex' : 'none';
+    if (opened) {
+      inputEl.focus();
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+  });
+  document.getElementById('vcChatClose').addEventListener('click', function () {
+    opened = false;
+    panel.style.display = 'none';
+  });
+  sendBtn.addEventListener('click', function () { send(); });
+  inputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') send(); });
+  document.querySelectorAll('.vc-suggestion').forEach(function (btn) {
+    btn.addEventListener('click', function () { send(btn.dataset.q); });
+  });
+  addMessage("Hello {{ user_first_name }}! I'm VitalCare's virtual assistant. Ask me about our doctors, services, pricing, insurance, or anything else about the hospital.", 'bot');
+})();
+</script>

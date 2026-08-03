@@ -145,6 +145,15 @@ class ApiClient {
     }
   }
 
+  static Future<Map<String, dynamic>> put(String endpoint, {Map<String, dynamic>? body}) async {
+    try {
+      final response = await _dio.put<dynamic>(endpoint, data: body);
+      return _handleResponse(response);
+    } on DioException catch (e) {
+      throw _toApiException(e);
+    }
+  }
+
   static Future<Map<String, dynamic>> delete(String endpoint) async {
     try {
       final response = await _dio.delete<dynamic>(endpoint);

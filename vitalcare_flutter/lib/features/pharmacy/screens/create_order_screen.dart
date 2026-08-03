@@ -97,9 +97,12 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             children: [
               Row(
                 children: [
-                  Text('New Pharmacy Order', style: Theme.of(context).textTheme.displayMedium),
-                  const Spacer(),
-                  TextButton(onPressed: () => context.pop(), child: const Text('← Back to Pharmacy')),
+                  Expanded(
+                    child: Text('New Pharmacy Order',
+                        style: Theme.of(context).textTheme.displayMedium,
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                  TextButton(onPressed: () => context.pop(), child: const Text('← Back')),
                 ],
               ),
               const SizedBox(height: 20),

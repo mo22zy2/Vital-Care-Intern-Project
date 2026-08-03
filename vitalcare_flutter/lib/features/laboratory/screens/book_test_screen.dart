@@ -58,7 +58,7 @@ class _BookTestScreenState extends State<BookTestScreen> {
                   value: _testId,
                   items: prov.tests.map((t) => DropdownMenuItem(
                     value: t['id'].toString(),
-                    child: Text('${t['name']}  (\$${t['price']})', style: const TextStyle(fontSize: 14)),
+                    child: Text('${t['name']}  (E£${t['price']})', style: const TextStyle(fontSize: 14)),
                   )).toList(),
                   onChanged: (v) => _testId = v,
                   validator: (v) => v == null ? 'Required' : null,

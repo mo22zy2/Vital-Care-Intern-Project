@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'app_drawer.dart';
 import 'app_topbar.dart';
+import 'floating_chat_button.dart';
 
 class AppShell extends StatelessWidget {
   final Widget child;
@@ -15,10 +16,15 @@ class AppShell extends StatelessWidget {
 
     return Scaffold(
       drawer: const AppDrawer(),
-      body: Column(
+      body: Stack(
         children: [
-          AppTopbar(title: title),
-          Expanded(child: child),
+          Column(
+            children: [
+              AppTopbar(title: title),
+              Expanded(child: child),
+            ],
+          ),
+          const Positioned(right: 20, bottom: 20, child: FloatingChatButton()),
         ],
       ),
     );
@@ -36,6 +42,7 @@ class AppShell extends StatelessWidget {
     if (uri.startsWith('/notifications')) return 'Notifications';
     if (uri.startsWith('/timeline')) return 'Timeline';
     if (uri.startsWith('/feedback')) return 'Feedback';
+    if (uri.startsWith('/insurance')) return 'Insurance';
     if (uri.startsWith('/profile')) return 'Profile';
     if (uri.startsWith('/search')) return 'Search';
     if (uri.startsWith('/doctor')) return 'Doctor Panel';

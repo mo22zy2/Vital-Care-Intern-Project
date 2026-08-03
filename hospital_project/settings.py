@@ -76,6 +76,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.chat_globals',
             ],
         },
     },
@@ -170,3 +171,39 @@ STATICFILES_DIRS = [BASE_DIR / 'core' / 'static']
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+
+# Logging: forward warnings/errors to the admin Telegram chat
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'telegram': {
+            'format': '%(asctime)s %(levelname)s %(name)s: %(message)s',
+        },
+    },
+    'handlers': {
+        'telegram': {
+            'class': 'core.telegram.TelegramLogHandler',
+            'level': 'WARNING',
+            'formatter': 'telegram',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['telegram'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'core': {
+            'handlers': ['telegram'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'api': {
+            'handlers': ['telegram'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}

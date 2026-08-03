@@ -8,7 +8,9 @@
     <h1>Billing</h1>
     <p>Invoices, payments, and revenue tracking.</p>
   </div>
-  <a href="#" class="btn btn-primary">+ New Invoice</a>
+  {% if user.role != 'PATIENT' %}
+  <a href="{% url 'admin_invoices' %}" class="btn btn-primary">+ New Invoice</a>
+  {% endif %}
 </div>
 
 <div class="card">
@@ -45,7 +47,7 @@
           <td><strong>{{ inv.patient.get_full_name }}</strong></td>
           <td>{{ inv.issue_date|date:"M d, Y" }}</td>
           <td>{{ inv.due_date|date:"M d, Y" }}</td>
-          <td style="text-align:right;font-family:var(--font-mono);font-weight:600;">${{ inv.total_amount }}</td>
+          <td style="text-align:right;font-family:var(--font-mono);font-weight:600;">E£{{ inv.total_amount }}</td>
           <td>
             <span class="badge
               {% if inv.status == 'PAID' %}badge-success
@@ -56,7 +58,7 @@
               {{ inv.get_status_display }}
             </span>
           </td>
-          <td><a href="#" class="btn btn-sm btn-ghost">→</a></td>
+          <td><a href="{% url 'invoice_detail' inv.id %}" class="btn btn-sm btn-ghost">→</a></td>
         </tr>
         {% empty %}
         <tr>

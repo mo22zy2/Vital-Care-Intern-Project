@@ -43,7 +43,16 @@
           <td>
             <ul style="margin:0;padding-left:1rem;">
               {% for i in p.items.all %}
-              <li>{{ i.medicine.name }} &mdash; {{ i.dosage }} ({{ i.quantity }})</li>
+              <li>
+                {{ i.medicine.name }} &mdash; {{ i.dosage }} ({{ i.quantity }})
+                {% if p.status == 'ACTIVE' %}
+                <form method="POST" action="{% url 'prescription_refill_request' %}" style="display:inline;">
+                  {% csrf_token %}
+                  <input type="hidden" name="item_id" value="{{ i.id }}">
+                  <button type="submit" class="btn btn-xs btn-outline" style="margin-left:6px;padding:2px 8px;font-size:0.7rem;">Request Refill</button>
+                </form>
+                {% endif %}
+              </li>
               {% endfor %}
             </ul>
           </td>
@@ -61,5 +70,39 @@
     {% endif %}
   </div>
   {% include "core/admin/_pagination.html" %}
+</div>
+
+<div class="card">
+  <div class="card-header"><strong>Refill Requests</strong></div>
+  <div class="card-body" style="padding:0;">
+    {% if refill_history %}
+    <table>
+      <thead>
+        <tr>
+          <th>Requested</th>
+          <th>Medicine</th>
+          <th>Prescription</th>
+          <th>Status</th>
+          <th>Fulfilled</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in refill_history %}
+        <tr>
+          <td>{{ r.requested_at|date:"M d, Y H:i" }}</td>
+          <td>{{ r.prescription_item.medicine.name }} &mdash; {{ r.prescription_item.dosage }}</td>
+          <td>{{ r.prescription_item.prescription.doctor.user.get_full_name }} &middot; {{ r.prescription_item.prescription.date_prescribed }}</td>
+          <td>
+            <span class="badge {% if r.status == 'REQUESTED' %}badge-warning{% elif r.status == 'APPROVED' %}badge-info{% elif r.status == 'FULFILLED' %}badge-success{% else %}badge-danger{% endif %}">{{ r.get_status_display }}</span>
+          </td>
+          <td>{% if r.fulfilled_at %}{{ r.fulfilled_at|date:"M d, Y H:i" }}{% else %}&mdash;{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="padding:24px;text-align:center;color:var(--color-text-muted);font-size:0.875rem;">No refill requests yet.</div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

@@ -43,7 +43,7 @@
           <td>{{ inv.patient.get_full_name|default:inv.patient.email }}</td>
           <td>{{ inv.issue_date|date:"M d, Y" }}</td>
           <td>{{ inv.due_date|date:"M d, Y" }}</td>
-          <td><strong>${{ inv.total_amount }}</strong></td>
+          <td><strong>E£{{ inv.total_amount }}</strong></td>
           <td>
             <form method="POST" style="display:inline;">
               {% csrf_token %}

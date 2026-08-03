@@ -1,0 +1,57 @@
+{% extends "core/base.html" %}
+{% block title %}Submit Insurance Claim{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Submit Insurance Claim</h1>
+    <p class="page-subtitle">Claim an invoice against your policy</p>
+  </div>
+  <a href="{% url 'insurance_list' %}" class="btn btn-outline">← Back</a>
+</div>
+
+<div class="card" style="max-width:640px;">
+  <div class="card-body">
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    {% if not policies or not invoices %}
+    <div class="alert alert-info">
+      {% if not policies %}You need at least one <a href="{% url 'insurance_policy_add' %}">insurance policy</a> to submit a claim.{% endif %}
+      {% if not invoices %}You have no invoices yet.{% endif %}
+    </div>
+    {% endif %}
+    <form method="POST">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label" for="policy_id">Policy <span style="color:var(--color-danger);">*</span></label>
+        <select class="form-select" id="policy_id" name="policy_id" required {% if not policies %}disabled{% endif %}>
+          <option value="">— Select Policy —</option>
+          {% for p in policies %}
+          <option value="{{ p.id }}">{{ p.provider.name }} — {{ p.policy_number }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="invoice_id">Invoice <span style="color:var(--color-danger);">*</span></label>
+        <select class="form-select" id="invoice_id" name="invoice_id" required {% if not invoices %}disabled{% endif %}>
+          <option value="">— Select Invoice —</option>
+          {% for i in invoices %}
+          <option value="{{ i.id }}">{{ i.invoice_number }} — E£{{ i.total_amount }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="claim_amount">Claim Amount (EGP) <span style="color:var(--color-danger);">*</span></label>
+        <input class="form-input" type="number" id="claim_amount" name="claim_amount" min="0.01" step="0.01" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="notes">Notes</label>
+        <textarea class="form-input" id="notes" name="notes" rows="3" placeholder="Additional details for the claim"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" {% if not policies or not invoices %}disabled{% endif %}>Submit Claim</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

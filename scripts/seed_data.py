@@ -271,9 +271,9 @@ def seed_doctors(users):
     for uname, wd, st, et in avail:
         doc = Doctor.objects.get(user=users[uname])
         h, mi = map(int, st.split(":"))
-        start_t = timezone.now().replace(hour=h, minute=mi, second=0).time()
+        start_t = timezone.now().replace(hour=h, minute=mi, second=0, microsecond=0).time()
         h2, mi2 = map(int, et.split(":"))
-        end_t = timezone.now().replace(hour=h2, minute=mi2, second=0).time()
+        end_t = timezone.now().replace(hour=h2, minute=mi2, second=0, microsecond=0).time()
         DoctorAvailability.objects.create(doctor=doc, weekday=wd, start_time=start_t, end_time=end_t)
 
     # Performance metrics
@@ -313,7 +313,7 @@ def seed_appointments(users):
     ]
     for aid, pname, dname, dt, tm, reason, status, notes, cancel_reason in data:
         hh, mm = map(int, tm.split(":"))
-        apt_time = timezone.now().replace(hour=hh, minute=mm, second=0).time()
+        apt_time = timezone.now().replace(hour=hh, minute=mm, second=0, microsecond=0).time()
         Appointment.objects.create(
             id=aid,
             patient=users[pname],

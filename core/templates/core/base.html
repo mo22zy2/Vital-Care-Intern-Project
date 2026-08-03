@@ -28,6 +28,7 @@
           <span class="sidebar-nav-icon">◇</span>
           Dashboard
         </a>
+        {% if user.role == 'PATIENT' %}
         <a href="{% url 'doctor_list' %}" class="sidebar-nav-item {% if active_tab == 'doctors' %}active{% endif %}">
           <span class="sidebar-nav-icon">◉</span>
           Doctors
@@ -56,14 +57,23 @@
           <span class="sidebar-nav-icon">💊</span>
           Prescriptions
         </a>
+        {% endif %}
         <a href="{% url 'notification_list' %}" class="sidebar-nav-item {% if active_tab == 'notifications' %}active{% endif %}">
           <span class="sidebar-nav-icon">🔔</span>
           Notifications
         </a>
+        {% if user.role == 'PATIENT' %}
         <a href="{% url 'patient_timeline' %}" class="sidebar-nav-item {% if active_tab == 'timeline' %}active{% endif %}">
           <span class="sidebar-nav-icon">📋</span>
           Timeline
         </a>
+        {% endif %}
+        {% if user.role == 'PATIENT' %}
+        <a href="{% url 'insurance_list' %}" class="sidebar-nav-item {% if active_tab == 'insurance' %}active{% endif %}">
+          <span class="sidebar-nav-icon">🏥</span>
+          Insurance
+        </a>
+        {% endif %}
         <a href="{% url 'submit_feedback' %}" class="sidebar-nav-item {% if active_tab == 'feedback' %}active{% endif %}">
           <span class="sidebar-nav-icon">💬</span>
           Feedback
@@ -88,11 +98,23 @@
         <a href="{% url 'pharmacist_dashboard' %}" class="sidebar-nav-item {% if active_tab == 'pharmacist_dashboard' %}active{% endif %}">
           <span class="sidebar-nav-icon">⚕︎</span> Dashboard
         </a>
+        <a href="{% url 'admin_medicines' %}" class="sidebar-nav-item {% if active_tab == 'admin_medicines' %}active{% endif %}">
+          <span class="sidebar-nav-icon">💊</span> Medicines
+        </a>
+        <a href="{% url 'admin_pharmacy_orders' %}" class="sidebar-nav-item {% if active_tab == 'admin_pharmacy_orders' %}active{% endif %}">
+          <span class="sidebar-nav-icon">▣</span> Orders
+        </a>
         {% endif %}
         {% if user.role == 'LAB_TECH' %}
         <div class="sidebar-nav-divider">Lab Panel</div>
         <a href="{% url 'labtech_dashboard' %}" class="sidebar-nav-item {% if active_tab == 'labtech_dashboard' %}active{% endif %}">
           <span class="sidebar-nav-icon">◉</span> Dashboard
+        </a>
+        <a href="{% url 'admin_labtests' %}" class="sidebar-nav-item {% if active_tab == 'admin_labtests' %}active{% endif %}">
+          <span class="sidebar-nav-icon">◉</span> Lab Tests
+        </a>
+        <a href="{% url 'admin_lab_bookings' %}" class="sidebar-nav-item {% if active_tab == 'admin_lab_bookings' %}active{% endif %}">
+          <span class="sidebar-nav-icon">📅</span> Lab Bookings
         </a>
         {% endif %}
         {% if user.role == 'ADMIN' or user.role == 'STAFF' %}
@@ -141,6 +163,10 @@
           <span class="sidebar-nav-icon">💊</span>
           Prescriptions
         </a>
+        <a href="{% url 'admin_refills' %}" class="sidebar-nav-item {% if active_tab == 'admin_refills' %}active{% endif %}">
+          <span class="sidebar-nav-icon">↻</span>
+          Refill Requests
+        </a>
         <a href="{% url 'admin_medical_records' %}" class="sidebar-nav-item {% if active_tab == 'admin_medical_records' %}active{% endif %}">
           <span class="sidebar-nav-icon">📋</span>
           Medical Records
@@ -155,7 +181,15 @@
         </a>
         <a href="{% url 'admin_insurance' %}" class="sidebar-nav-item {% if active_tab == 'admin_insurance' %}active{% endif %}">
           <span class="sidebar-nav-icon">🏥</span>
-          Insurance
+          Insurance Providers
+        </a>
+        <a href="{% url 'admin_insurance_policies' %}" class="sidebar-nav-item {% if active_tab == 'admin_insurance_policies' %}active{% endif %}">
+          <span class="sidebar-nav-icon">📄</span>
+          Insurance Policies
+        </a>
+        <a href="{% url 'admin_insurance_claims' %}" class="sidebar-nav-item {% if active_tab == 'admin_insurance_claims' %}active{% endif %}">
+          <span class="sidebar-nav-icon">🧾</span>
+          Insurance Claims
         </a>
         <a href="{% url 'admin_reports' %}" class="sidebar-nav-item {% if active_tab == 'admin_reports' %}active{% endif %}">
           <span class="sidebar-nav-icon">📊</span>
@@ -200,5 +234,7 @@
   </div>
 
   <script src="{% static 'core/js/main.js' %}"></script>
+  {% include "core/partials/chat_widget.html" %}
+  {% block scripts %}{% endblock %}
 </body>
 </html>

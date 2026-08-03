@@ -10,8 +10,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
   <style>
-    .auth-card { max-width: 680px; width:100%; }
+    .auth-container { max-width: 1100px; }
+    .auth-card { max-width: 1100px; width:100%; }
+    @media (min-width: 1300px) { .auth-container, .auth-card { max-width: 75vw; } }
     .form-section { margin-bottom: 20px; }
+    .register-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }
     .form-section-title {
       font-family: 'Inter Tight', sans-serif;
       font-size: 0.8125rem;
@@ -29,6 +32,8 @@
       margin-top: 4px;
     }
     .is-invalid { border-color: var(--color-danger) !important; }
+    @media (max-width: 720px) { .register-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .register-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body class="auth-page">
@@ -65,7 +70,7 @@
 
         <div class="form-section">
           <div class="form-section-title">Personal Information</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="register-grid">
             <div class="form-group">
               <label class="form-label" for="first_name">First Name <span style="color:var(--color-danger);">*</span></label>
               <input class="form-input{% if field_errors.first_name %} is-invalid{% endif %}" type="text" id="first_name" name="first_name" placeholder="Jane" value="{{ data.first_name }}" required>
@@ -103,7 +108,7 @@
 
         <div class="form-section">
           <div class="form-section-title">Emergency Contact</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="register-grid">
             <div class="form-group">
               <label class="form-label" for="ec_name">Full Name</label>
               <input class="form-input" type="text" id="ec_name" name="ec_name" placeholder="Contact name" value="{{ data.ec_name }}">
@@ -125,7 +130,7 @@
               <label class="form-label" for="ec_alt_phone">Alternate Phone</label>
               <input class="form-input" type="tel" id="ec_alt_phone" name="ec_alt_phone" placeholder="Alternate phone" value="{{ data.ec_alt_phone }}">
             </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
+            <div class="form-group" style="grid-column: span 2;">
               <label class="form-label" for="ec_email">Email</label>
               <input class="form-input" type="email" id="ec_email" name="ec_email" placeholder="contact@email.com" value="{{ data.ec_email }}">
             </div>

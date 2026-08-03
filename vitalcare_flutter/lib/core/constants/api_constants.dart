@@ -5,12 +5,19 @@ class ApiConstants {
 
   static String get baseUrl => kIsWeb ? 'http://localhost:8081' : 'http://10.0.2.2:8081';
 
+  static String get ragBaseUrl => kIsWeb ? 'http://localhost:9000' : 'http://10.0.2.2:9000';
+
+  static const int ragProjectId = 21;
+  static String get ragAnswer => '/api/v1/nlp/index/answer/$ragProjectId';
+
   static const String login = '/auth/login';
   static const String register = '/auth/register';
   static const String patientDashboard = '/accounts/dashboard';
   static const String patientTimeline = '/accounts/timeline';
   static const String profile = '/accounts/me';
   static const String changePassword = '/accounts/me/password';
+  static const String requestOtp = '/accounts/request-otp';
+  static const String verifyOtp = '/accounts/verify-otp';
 
   static const String doctors = '/doctors';
   static const String doctorSpecialties = '/doctors/specialties';
@@ -29,6 +36,8 @@ class ApiConstants {
   static const String labDashboard = '/laboratory/dashboard';
 
   static const String invoices = '/billing/invoices';
+  static const String payments = '/payments/payments';
+  static const String chatAsk = '/chat/ask';
   static const String medicalRecords = '/medical-records';
   static const String prescriptions = '/prescriptions';
   static const String notifications = '/notifications';

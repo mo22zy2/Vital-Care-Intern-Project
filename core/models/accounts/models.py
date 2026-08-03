@@ -103,23 +103,3 @@ class UserPreference(models.Model):
 
     def __str__(self):
         return f"Preferences for {self.user.username}"
-
-
-class TelegramLink(models.Model):
-    """
-    Links a user's account to their Telegram chat so in-app notifications
-    are also delivered to their Telegram. `token` is used in the
-    t.me/<bot>?start=<token> deep link; `telegram_chat_id` is bound when
-    the user presses Start with that token.
-    """
-
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="telegram_link"
-    )
-    token = models.CharField(max_length=64, unique=True, default=lambda: uuid.uuid4().hex)
-    telegram_chat_id = models.CharField(max_length=64, blank=True, default="")
-    linked_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Telegram link for {self.user.username}"

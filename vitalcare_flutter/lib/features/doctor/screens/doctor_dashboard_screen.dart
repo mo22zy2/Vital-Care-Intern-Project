@@ -66,16 +66,19 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           const SizedBox(height: 24),
           LayoutBuilder(
             builder: (context, constraints) {
-              final w = (constraints.maxWidth - 48) / 4;
-              return Row(
+              final twoPerRow = constraints.maxWidth < 720;
+              final w = twoPerRow ? (constraints.maxWidth - 16) / 2 : (constraints.maxWidth - 48) / 4;
+              final cards = [
+                AppStatCard(label: 'Today\'s Appointments', value: '${d['total_today'] ?? 0}', icon: Icons.calendar_today, color: AppColors.accent),
+                AppStatCard(label: 'Completed', value: '${d['total_completed'] ?? 0}', icon: Icons.check_circle, color: AppColors.primary),
+                AppStatCard(label: 'Pending', value: '${d['total_pending'] ?? 0}', icon: Icons.pending, color: AppColors.warning),
+                AppStatCard(label: 'Upcoming', value: '${(d['upcoming'] as List? ?? []).length}', icon: Icons.schedule, color: AppColors.success),
+              ];
+              return Wrap(
+                spacing: 16,
+                runSpacing: 16,
                 children: [
-                  SizedBox(width: w, child: AppStatCard(label: 'Today\'s Appointments', value: '${d['total_today'] ?? 0}', icon: Icons.calendar_today, color: AppColors.accent)),
-                  const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Completed', value: '${d['total_completed'] ?? 0}', icon: Icons.check_circle, color: AppColors.primary)),
-                  const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Pending', value: '${d['total_pending'] ?? 0}', icon: Icons.pending, color: AppColors.warning)),
-                  const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Upcoming', value: '${(d['upcoming'] as List? ?? []).length}', icon: Icons.schedule, color: AppColors.success)),
+                  for (final c in cards) SizedBox(width: w, child: c),
                 ],
               );
             },

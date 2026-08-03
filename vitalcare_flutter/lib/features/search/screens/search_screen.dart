@@ -55,8 +55,7 @@ class _SearchScreenState extends State<SearchScreen> {
           padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
           child: Row(
             children: [
-              SizedBox(
-                width: 400,
+              Expanded(
                 child: TextField(
                   controller: _ctl,
                   decoration: InputDecoration(

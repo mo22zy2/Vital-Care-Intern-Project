@@ -62,6 +62,14 @@ class DoctorAvailability(models.Model):
     class Meta:
         unique_together = ("doctor", "weekday", "start_time", "end_time")
 
+    def covers(self, t):
+        """True if time t falls inside this slot, handling slots that span midnight."""
+        st = self.start_time.replace(microsecond=0)
+        et = self.end_time.replace(microsecond=0)
+        if et <= st:
+            return t >= st or t <= et
+        return st <= t <= et
+
     def __str__(self):
         return f"{self.doctor} - {self.get_weekday_display()} {self.start_time}-{self.end_time}"
 

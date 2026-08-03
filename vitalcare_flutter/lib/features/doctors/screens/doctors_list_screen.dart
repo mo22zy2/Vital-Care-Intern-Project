@@ -41,8 +41,7 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
           padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
           child: Row(
             children: [
-              SizedBox(
-                width: 220,
+              Expanded(
                 child: TextField(
                   controller: _searchCtl,
                   decoration: const InputDecoration(
@@ -92,16 +91,21 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
                       ? const EmptyState(icon: Icons.medical_services, title: 'No doctors found')
                       : RefreshIndicator(
                           onRefresh: prov.load,
-                          child: GridView.builder(
-                            padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 2.2,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                            ),
-                            itemCount: prov.doctors.length,
-                            itemBuilder: (context, i) => _doctorCard(prov.doctors[i]),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final columns = constraints.maxWidth < 560 ? 1 : 2;
+                              return GridView.builder(
+                                padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: columns,
+                                  childAspectRatio: columns == 1 ? 4.2 : 2.2,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                ),
+                                itemCount: prov.doctors.length,
+                                itemBuilder: (context, i) => _doctorCard(prov.doctors[i]),
+                              );
+                            },
                           ),
                         ),
         ),
@@ -150,7 +154,7 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
                         const SizedBox(width: 12),
                         Icon(Icons.attach_money, size: 13, color: AppColors.textMuted),
                         const SizedBox(width: 4),
-                        Text('\$$fee', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text('E£$fee', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       ],
                     ),
                   ],
@@ -160,7 +164,7 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AppButton.primary('Book', onPressed: () => context.push('/appointments/book', extra: d)),
+                  AppButton.primary('Book', expanded: false, onPressed: () => context.push('/appointments/book', extra: d)),
                   const SizedBox(height: 4),
                   TextButton(
                     onPressed: () => context.push('/doctors/${d['id']}', extra: d),

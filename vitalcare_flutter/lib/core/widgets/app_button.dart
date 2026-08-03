@@ -19,17 +19,17 @@ class AppButton extends StatelessWidget {
     this.icon,
   });
 
-  factory AppButton.primary(String label, {VoidCallback? onPressed, bool isLoading = false}) =>
-      AppButton(label: label, onPressed: onPressed, isLoading: isLoading, color: AppColors.primary);
+  factory AppButton.primary(String label, {VoidCallback? onPressed, bool isLoading = false, bool expanded = true}) =>
+      AppButton(label: label, onPressed: onPressed, isLoading: isLoading, color: AppColors.primary, expanded: expanded);
 
-  factory AppButton.accent(String label, {VoidCallback? onPressed, bool isLoading = false}) =>
-      AppButton(label: label, onPressed: onPressed, isLoading: isLoading, color: AppColors.accent);
+  factory AppButton.accent(String label, {VoidCallback? onPressed, bool isLoading = false, bool expanded = true}) =>
+      AppButton(label: label, onPressed: onPressed, isLoading: isLoading, color: AppColors.accent, expanded: expanded);
 
-  factory AppButton.danger(String label, {VoidCallback? onPressed, bool isLoading = false}) =>
-      AppButton(label: label, onPressed: onPressed, isLoading: isLoading, color: AppColors.danger);
+  factory AppButton.danger(String label, {VoidCallback? onPressed, bool isLoading = false, bool expanded = true}) =>
+      AppButton(label: label, onPressed: onPressed, isLoading: isLoading, color: AppColors.danger, expanded: expanded);
 
-  factory AppButton.outline(String label, {VoidCallback? onPressed}) =>
-      AppButton(label: label, onPressed: onPressed, color: Colors.transparent);
+  factory AppButton.outline(String label, {VoidCallback? onPressed, bool expanded = true}) =>
+      AppButton(label: label, onPressed: onPressed, color: Colors.transparent, expanded: expanded);
 
   @override
   Widget build(BuildContext context) {

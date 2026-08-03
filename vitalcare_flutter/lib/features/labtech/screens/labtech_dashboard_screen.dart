@@ -45,16 +45,19 @@ class _LabtechDashboardScreenState extends State<LabtechDashboardScreen> {
           const SizedBox(height: 24),
           LayoutBuilder(
             builder: (context, constraints) {
-              final w = (constraints.maxWidth - 48) / 4;
-              return Row(
+              final twoPerRow = constraints.maxWidth < 720;
+              final w = twoPerRow ? (constraints.maxWidth - 16) / 2 : (constraints.maxWidth - 48) / 4;
+              final cards = [
+                AppStatCard(label: 'Pending', value: '${(d['pending'] as List? ?? []).length}', icon: Icons.pending, color: AppColors.warning),
+                AppStatCard(label: 'In Progress', value: '${(d['in_progress'] as List? ?? []).length}', icon: Icons.science, color: AppColors.info),
+                AppStatCard(label: 'Total Today', value: '${d['total_today'] ?? 0}', icon: Icons.check_circle, color: AppColors.success),
+                AppStatCard(label: 'Samples Collected', value: '${(d['in_progress'] as List? ?? []).where((x) => x['status'] == 'SAMPLE_COLLECTED').length}', icon: Icons.biotech, color: AppColors.primary),
+              ];
+              return Wrap(
+                spacing: 16,
+                runSpacing: 16,
                 children: [
-                  SizedBox(width: w, child: AppStatCard(label: 'Pending', value: '${(d['pending'] as List? ?? []).length}', icon: Icons.pending, color: AppColors.warning)),
-                  const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'In Progress', value: '${(d['in_progress'] as List? ?? []).length}', icon: Icons.science, color: AppColors.info)),
-                  const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Total Today', value: '${d['total_today'] ?? 0}', icon: Icons.check_circle, color: AppColors.success)),
-                  const SizedBox(width: 16),
-                  SizedBox(width: w, child: AppStatCard(label: 'Samples Collected', value: '${(d['in_progress'] as List? ?? []).where((x) => x['status'] == 'SAMPLE_COLLECTED').length}', icon: Icons.biotech, color: AppColors.primary)),
+                  for (final c in cards) SizedBox(width: w, child: c),
                 ],
               );
             },

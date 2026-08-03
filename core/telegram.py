@@ -1,4 +1,7 @@
 import os
+import logging
+import html
+
 import requests
 from dotenv import load_dotenv
 
@@ -6,25 +9,6 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-
-_bot_username = None
-
-
-def get_bot_username() -> str:
-    global _bot_username
-    if _bot_username is not None:
-        return _bot_username
-    _bot_username = ""
-    if not BOT_TOKEN:
-        return ""
-    try:
-        r = requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/getMe", timeout=5)
-        data = r.json()
-        if data.get("ok"):
-            _bot_username = data["result"].get("username", "")
-    except Exception:
-        pass
-    return _bot_username
 
 
 def send_telegram(message: str) -> bool:
@@ -45,3 +29,16 @@ def send_telegram_to(chat_id: str, message: str) -> bool:
         return r.status_code == 200
     except Exception:
         return False
+
+
+class TelegramLogHandler(logging.Handler):
+    """Log handler that forwards records to the admin Telegram chat."""
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            if len(msg) > 3500:
+                msg = msg[:3500] + "..."
+            send_telegram(f"⚙️ <b>Log</b>\n{html.escape(msg)}")
+        except Exception:
+            pass

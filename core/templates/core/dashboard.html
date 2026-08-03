@@ -8,7 +8,7 @@
     <h1>Dashboard</h1>
     <p>Welcome back, {{ user.get_full_name|default:user.email }}. Here's your hospital overview.</p>
   </div>
-  <a href="{% url 'appointment_list' %}" class="btn btn-primary">+ New Appointment</a>
+  <a href="{% url 'book_appointment' %}" class="btn btn-primary">+ Book Appointment</a>
 </div>
 
 <div class="stats-grid">
@@ -37,11 +37,11 @@
     </div>
   </div>
   <div class="stat-card info">
-    <div class="stat-card-icon">▣</div>
+    <div class="stat-card-icon">📅</div>
     <div class="stat-card-body">
-      <div class="stat-card-value">${{ total_revenue }}</div>
-      <div class="stat-card-label">Revenue This Month</div>
-      <div class="stat-card-change up">↑ {{ revenue_change }}% from last month</div>
+      <div class="stat-card-value">{{ total_upcoming }}</div>
+      <div class="stat-card-label">Upcoming Appointments</div>
+      <div class="stat-card-change up">↑ confirmed &amp; pending</div>
     </div>
   </div>
 </div>

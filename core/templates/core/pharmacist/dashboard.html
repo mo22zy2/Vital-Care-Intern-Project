@@ -8,14 +8,31 @@
 </div>
 <div class="section-grid section-grid-2">
   <div class="card">
-    <div class="card-header"><h3>Pending Orders</h3></div>
+    <div class="card-header"><h3>Active Orders</h3></div>
     <div style="overflow-x:auto;">
       <table>
-        <thead><tr><th>Patient</th><th>Items</th><th>Date</th><th></th></tr></thead>
-        <tbody>{% for o in pending_orders %}<tr><td><strong>{{ o.patient.get_full_name }}</strong></td><td>{{ o.items.count }} item(s)</td><td style="font-size:0.8125rem;">{{ o.ordered_at|date:"M d H:i" }}</td>
-        <td><form method="POST" style="display:inline;">{% csrf_token %}<input type="hidden" name="order_id" value="{{ o.id }}">
-          <button type="submit" name="action" value="process" class="btn btn-sm btn-primary">Process</button>
-        </form></td></tr>{% empty %}<tr><td colspan="4"><div class="empty-state" style="padding:24px;"><p>No pending orders.</p></div></td></tr>{% endfor %}</tbody>
+        <thead><tr><th>Patient</th><th>Items</th><th>Status</th><th>Date</th><th></th></tr></thead>
+        <tbody>{% for o in active_orders %}<tr><td><strong>{{ o.patient.get_full_name }}</strong></td><td>{{ o.items.count }} item(s)</td>
+        <td><span class="badge
+          {% if o.status == 'PENDING' %}badge-warning
+          {% elif o.status == 'PROCESSING' %}badge-info
+          {% elif o.status == 'READY_FOR_PICKUP' %}badge-success{% endif %}">{{ o.get_status_display }}</span></td>
+        <td style="font-size:0.8125rem;">{{ o.ordered_at|date:"M d H:i" }}</td>
+        <td>
+          {% if o.status == 'PENDING' %}
+          <form method="POST" style="display:inline;">{% csrf_token %}<input type="hidden" name="order_id" value="{{ o.id }}">
+            <button type="submit" name="action" value="process" class="btn btn-sm btn-primary">Process</button>
+          </form>
+          {% elif o.status == 'PROCESSING' %}
+          <form method="POST" style="display:inline;">{% csrf_token %}<input type="hidden" name="order_id" value="{{ o.id }}">
+            <button type="submit" name="action" value="ready" class="btn btn-sm btn-primary">Ready for Pickup</button>
+          </form>
+          {% elif o.status == 'READY_FOR_PICKUP' %}
+          <form method="POST" style="display:inline;">{% csrf_token %}<input type="hidden" name="order_id" value="{{ o.id }}">
+            <button type="submit" name="action" value="deliver" class="btn btn-sm btn-success">Mark Delivered</button>
+          </form>
+          {% endif %}
+        </td></tr>{% empty %}<tr><td colspan="5"><div class="empty-state" style="padding:24px;"><p>No active orders.</p></div></td></tr>{% endfor %}</tbody>
       </table>
     </div>
   </div>

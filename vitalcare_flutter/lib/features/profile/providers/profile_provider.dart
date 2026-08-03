@@ -33,4 +33,9 @@ class ProfileProvider extends BaseProvider {
       return false;
     }
   }
+
+  Future<bool> updateEmergencyContact(String id, Map<String, dynamic> body) => guard(() async {
+        await ApiClient.put('${ApiConstants.emergencyContacts}/$id', body: body);
+        await load();
+      });
 }

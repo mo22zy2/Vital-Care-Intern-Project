@@ -39,10 +39,11 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
           padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
           child: Row(
             children: [
-              Text('Medical Records', style: Theme.of(context).textTheme.displayMedium),
-              const Spacer(),
-              SizedBox(
-                width: 220,
+              Flexible(
+                child: Text('Medical Records', style: Theme.of(context).textTheme.displayMedium, overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: TextField(
                   controller: _searchCtl,
                   decoration: const InputDecoration(
@@ -80,9 +81,12 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
                                   children: [
                                     Text(r['record_date']?.toString() ?? '',
                                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary)),
-                                    const Spacer(),
-                                    Text('Dr. ${r['doctor_name'] ?? ''}',
-                                        style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text('Dr. ${r['doctor_name'] ?? ''}',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 8),

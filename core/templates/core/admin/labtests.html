@@ -34,7 +34,7 @@
         <tr>
           <td><strong>{{ t.name }}</strong></td>
           <td><span class="badge badge-neutral">{{ t.category|default:"General" }}</span></td>
-          <td>${{ t.price }}</td>
+          <td>E£{{ t.price }}</td>
           <td>{% if t.is_active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-danger">Inactive</span>{% endif %}</td>
           <td>
             <a href="{% url 'admin_labtest_edit' t.id %}" class="btn btn-sm btn-ghost">Edit</a>

@@ -25,7 +25,7 @@
       </div>
       <div style="margin-bottom:12px;">
         <div style="font-size:0.75rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.02em;">Fee</div>
-        <div>${{ doctor.consultation_fee }}</div>
+        <div>E£{{ doctor.consultation_fee }}</div>
       </div>
       <div style="margin-bottom:12px;">
         <div style="font-size:0.75rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.02em;">Location</div>
@@ -36,6 +36,26 @@
         <div style="font-size:0.75rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.02em;">Bio</div>
         <div style="font-size:0.875rem;">{{ doctor.bio }}</div>
       </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><strong>Working Hours</strong></div>
+    <div class="card-body">
+      {% if doctor.availabilities.all %}
+      <table style="width:100%;font-size:0.85rem;border-collapse:collapse;">
+        {% for s in doctor.availabilities.all|dictsort:"weekday" %}
+        <tr>
+          <td style="padding:6px 0;color:var(--color-text-muted);">{{ s.get_weekday_display }}</td>
+          <td style="padding:6px 0;text-align:right;font-weight:600;color:var(--color-primary);">
+            {% if not s.is_available %}Unavailable{% else %}{{ s.start_time|time:"h:i A" }} – {{ s.end_time|time:"h:i A" }}{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% else %}
+      <div style="text-align:center;padding:24px;color:var(--color-text-muted);font-size:0.875rem;">Working hours not set yet.</div>
       {% endif %}
     </div>
   </div>

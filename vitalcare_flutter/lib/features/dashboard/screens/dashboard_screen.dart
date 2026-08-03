@@ -57,7 +57,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               if (role == 'PATIENT')
-                AppButton.accent('+ New Appointment', onPressed: () => context.push('/appointments/book')),
+                AppButton.accent('+ New Appointment', expanded: false,
+                    onPressed: () => context.push('/appointments/book')),
             ],
           ),
           const SizedBox(height: 24),
@@ -66,6 +67,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (data != null) ...[
             LayoutBuilder(
               builder: (context, constraints) {
+                if (constraints.maxWidth < 720) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _upcomingAppointments(upcoming),
+                      const SizedBox(height: 20),
+                      _recentActivity(activities),
+                    ],
+                  );
+                }
                 final leftWidth = constraints.maxWidth * 2 / 3;
                 final rightWidth = constraints.maxWidth * 1 / 3 - 16;
                 return Row(
@@ -85,50 +96,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStats(Map<String, dynamic>? data) {
+    final cards = [
+      AppStatCard(
+        label: 'Appointments Today',
+        value: '${data?['total_appointments'] ?? 0}',
+        icon: Icons.calendar_today,
+        color: AppColors.accent,
+      ),
+      AppStatCard(
+        label: 'Unread Notifications',
+        value: '${data?['unread_notifications'] ?? 0}',
+        icon: Icons.notifications,
+        color: AppColors.info,
+      ),
+      AppStatCard(
+        label: 'Pending Orders',
+        value: '${data?['pending_orders'] ?? 0}',
+        icon: Icons.inventory,
+        color: AppColors.success,
+      ),
+      AppStatCard(
+        label: 'Total Invoices',
+        value: '${data?['total_invoices'] ?? 0}',
+        icon: Icons.receipt_long,
+        color: AppColors.primary,
+      ),
+    ];
     return LayoutBuilder(
       builder: (context, constraints) {
-        final w = (constraints.maxWidth - 48) / 4;
-        return Row(
+        final perRow = constraints.maxWidth < 720 ? 2 : 4;
+        final w = (constraints.maxWidth - 16.0 * (perRow - 1)) / perRow;
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
           children: [
-            SizedBox(
-              width: w,
-              child: AppStatCard(
-                label: 'Appointments Today',
-                value: '${data?['total_appointments'] ?? 0}',
-                icon: Icons.calendar_today,
-                color: AppColors.accent,
-              ),
-            ),
-            const SizedBox(width: 16),
-            SizedBox(
-              width: w,
-              child: AppStatCard(
-                label: 'Unread Notifications',
-                value: '${data?['unread_notifications'] ?? 0}',
-                icon: Icons.notifications,
-                color: AppColors.info,
-              ),
-            ),
-            const SizedBox(width: 16),
-            SizedBox(
-              width: w,
-              child: AppStatCard(
-                label: 'Pending Orders',
-                value: '${data?['pending_orders'] ?? 0}',
-                icon: Icons.inventory,
-                color: AppColors.success,
-              ),
-            ),
-            const SizedBox(width: 16),
-            SizedBox(
-              width: w,
-              child: AppStatCard(
-                label: 'Total Invoices',
-                value: '${data?['total_invoices'] ?? 0}',
-                icon: Icons.receipt_long,
-                color: AppColors.primary,
-              ),
-            ),
+            for (final c in cards) SizedBox(width: w, child: c),
           ],
         );
       },

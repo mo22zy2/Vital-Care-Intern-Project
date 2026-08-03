@@ -44,9 +44,9 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
             children: [
               Text('Pharmacy', style: Theme.of(context).textTheme.displayMedium),
               const Spacer(),
-              AppButton.accent('+ New Order', onPressed: () => context.push('/pharmacy/order/create')),
+              AppButton.accent('+ New Order', expanded: false, onPressed: () => context.push('/pharmacy/order/create')),
               const SizedBox(width: 8),
-              AppButton.outline('My Orders', onPressed: () => context.push('/pharmacy/orders')),
+              AppButton.outline('My Orders', expanded: false, onPressed: () => context.push('/pharmacy/orders')),
             ],
           ),
         ),
@@ -55,8 +55,7 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Row(
             children: [
-              SizedBox(
-                width: 220,
+              Expanded(
                 child: TextField(
                   controller: _searchCtl,
                   decoration: const InputDecoration(
@@ -94,16 +93,21 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
                   ? const EmptyState(icon: Icons.medication, title: 'No medicines found')
                   : RefreshIndicator(
                       onRefresh: prov.loadMedicines,
-                      child: GridView.builder(
-                        padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          childAspectRatio: 1.0,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                        ),
-                        itemCount: prov.medicines.length,
-                        itemBuilder: (context, i) => _medicineCard(prov.medicines[i]),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final columns = constraints.maxWidth < 640 ? 2 : 4;
+                          return GridView.builder(
+                            padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: columns,
+                              childAspectRatio: columns == 2 ? 1.4 : 1.0,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                            ),
+                            itemCount: prov.medicines.length,
+                            itemBuilder: (context, i) => _medicineCard(prov.medicines[i]),
+                          );
+                        },
                       ),
                     ),
         ),

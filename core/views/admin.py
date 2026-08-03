@@ -14,13 +14,18 @@ from ..notify import notify_appointment_booked, notify_appointment_status_change
 User = get_user_model()
 
 
-def admin_required(view_func):
-    @wraps(view_func)
-    def _wrapped(request, *args, **kwargs):
-        if request.user.role not in ("ADMIN", "STAFF"):
-            return redirect("dashboard")
-        return view_func(request, *args, **kwargs)
-    return login_required(_wrapped)
+def admin_required(view_func=None, *, roles=("ADMIN", "STAFF")):
+    def decorator(fn):
+        @wraps(fn)
+        def _wrapped(request, *args, **kwargs):
+            if request.user.role not in roles:
+                return redirect("dashboard")
+            return fn(request, *args, **kwargs)
+        return login_required(_wrapped)
+
+    if view_func is not None:
+        return decorator(view_func)
+    return decorator
 
 
 # ──────────────────────────────────────────────
@@ -225,6 +230,8 @@ def appointment_create(request):
             error = "Date and time are required."
         elif appointment_date < str(timezone.now().date()):
             error = "Appointment date cannot be in the past."
+        elif appointment_date == str(timezone.localtime().date()) and appointment_time <= timezone.localtime().strftime("%H:%M"):
+            error = "Appointment time cannot be in the past."
         else:
             from datetime import datetime
             try:
@@ -233,7 +240,7 @@ def appointment_create(request):
                 weekday = apt_date.weekday()
                 slots = doctor.availabilities.filter(weekday=weekday, is_available=True)
                 if slots.exists():
-                    in_slot = any(s.start_time <= apt_time <= s.end_time for s in slots)
+                    in_slot = any(s.covers(apt_time) for s in slots)
                     if not in_slot:
                         error = "The selected time is outside the doctor's working hours."
             except ValueError:
@@ -474,7 +481,7 @@ def doctor_edit(request, doctor_id):
 #  MEDICINES  (full CRUD)
 # ──────────────────────────────────────────────
 
-@admin_required
+@admin_required(roles=("ADMIN", "STAFF", "PHARMACIST"))
 def medicine_list(request):
     q = request.GET.get("q", "")
     from core.models.pharmacy.models import Medicine
@@ -500,7 +507,7 @@ def medicine_list(request):
     })
 
 
-@admin_required
+@admin_required(roles=("ADMIN", "STAFF", "PHARMACIST"))
 def medicine_create(request):
     from core.models.pharmacy.models import Medicine
 
@@ -543,7 +550,7 @@ def medicine_create(request):
     })
 
 
-@admin_required
+@admin_required(roles=("ADMIN", "STAFF", "PHARMACIST"))
 def medicine_edit(request, medicine_id):
     from core.models.pharmacy.models import Medicine
 
@@ -631,7 +638,7 @@ def invoice_list(request):
 #  LAB TESTS  (full CRUD)
 # ──────────────────────────────────────────────
 
-@admin_required
+@admin_required(roles=("ADMIN", "STAFF", "LAB_TECH"))
 def labtest_list(request):
     q = request.GET.get("q", "")
 
@@ -656,7 +663,7 @@ def labtest_list(request):
     })
 
 
-@admin_required
+@admin_required(roles=("ADMIN", "STAFF", "LAB_TECH"))
 def labtest_create(request):
     from core.models.laboratory.models import LabTest
 
@@ -687,7 +694,7 @@ def labtest_create(request):
     })
 
 
-@admin_required
+@admin_required(roles=("ADMIN", "STAFF", "LAB_TECH"))
 def labtest_edit(request, test_id):
     from core.models.laboratory.models import LabTest
 
@@ -723,7 +730,7 @@ def labtest_edit(request, test_id):
 #  PHARMACY ORDERS  (list + status)
 # ──────────────────────────────────────────────
 
-@admin_required
+@admin_required(roles=("ADMIN", "STAFF", "PHARMACIST"))
 def pharmacy_order_list(request):
     q = request.GET.get("q", "")
     status_filter = request.GET.get("status", "")
@@ -805,7 +812,7 @@ def feedback_list(request):
 #  LAB BOOKINGS  (list + status + release results)
 # ──────────────────────────────────────────────
 
-@admin_required
+@admin_required(roles=("ADMIN", "STAFF", "LAB_TECH"))
 def lab_booking_list(request):
     from core.models.laboratory.models import LabTestBooking, LabTestResult
 
@@ -882,6 +889,60 @@ def admin_prescription_list(request):
 
 
 # ──────────────────────────────────────────────
+#  PRESCRIPTION REFILLS  (list + status)
+# ──────────────────────────────────────────────
+
+@admin_required
+def admin_refill_list(request):
+    from core.models.prescriptions.models import PrescriptionRefill
+
+    q = request.GET.get("q", "")
+    status_filter = request.GET.get("status", "")
+
+    refills = PrescriptionRefill.objects.select_related(
+        "prescription_item__medicine",
+        "prescription_item__prescription__patient",
+        "prescription_item__prescription__doctor__user",
+    )
+    if q:
+        refills = refills.filter(
+            Q(prescription_item__prescription__patient__first_name__icontains=q)
+            | Q(prescription_item__prescription__patient__last_name__icontains=q)
+            | Q(prescription_item__medicine__name__icontains=q)
+        )
+    if status_filter:
+        refills = refills.filter(status=status_filter)
+    refills = refills.order_by("-requested_at")
+
+    if request.method == "POST":
+        refill_id = request.POST.get("refill_id")
+        action = request.POST.get("action")
+        refill = get_object_or_404(PrescriptionRefill, id=refill_id)
+        if action == "approve" and refill.status == "REQUESTED":
+            refill.status = "APPROVED"
+            refill.save(update_fields=["status"])
+            send_telegram(f"💊 Refill approved: {refill.prescription_item.prescription.patient.email} — {refill.prescription_item.medicine.name if refill.prescription_item.medicine else 'item'}")
+        elif action == "deny" and refill.status == "REQUESTED":
+            refill.status = "DENIED"
+            refill.save(update_fields=["status"])
+        elif action == "fulfill" and refill.status == "APPROVED":
+            refill.status = "FULFILLED"
+            refill.fulfilled_at = timezone.now()
+            refill.save(update_fields=["status", "fulfilled_at"])
+        return redirect("admin_refills")
+
+    page_num = request.GET.get("page", 1)
+    paginator = Paginator(refills, 20)
+    page_obj = paginator.get_page(page_num)
+
+    return render(request, "core/admin/refills.html", {
+        "active_tab": "admin_refills",
+        "page_obj": page_obj, "refills": page_obj, "query": q, "selected_status": status_filter,
+        "statuses": PrescriptionRefill.Status.choices,
+    })
+
+
+# ──────────────────────────────────────────────
 #  MEDICAL RECORDS  (list + view)
 # ──────────────────────────────────────────────
 
@@ -928,6 +989,7 @@ def admin_notification_list(request):
 
     if request.method == "POST":
         recipient_id = request.POST.get("recipient_id")
+        recipient_email = request.POST.get("recipient_email", "").strip()
         ntype = request.POST.get("notification_type")
         title = request.POST.get("title", "")
         message = request.POST.get("message", "")
@@ -937,6 +999,11 @@ def admin_notification_list(request):
                 get_object_or_404(User, id=recipient_id),
                 ntype or "GENERAL", title, message,
             )
+        elif recipient_email and title and message:
+            from ..notify import create_notification
+            recipient = User.objects.filter(email=recipient_email).first()
+            if recipient:
+                create_notification(recipient, ntype or "GENERAL", title, message)
         return redirect(request.path)
 
     return render(request, "core/admin/notifications.html", {
@@ -1012,6 +1079,107 @@ def admin_insurance_provider_list(request):
     return render(request, "core/admin/insurance_providers.html", {
         "active_tab": "admin_insurance",
         "providers": providers, "query": q,
+    })
+
+
+# ──────────────────────────────────────────────
+#  INSURANCE POLICIES  (list + status)
+# ──────────────────────────────────────────────
+
+@admin_required
+def admin_insurance_policy_list(request):
+    from core.models.insurance.models import HealthInsurance
+
+    q = request.GET.get("q", "")
+    status_filter = request.GET.get("status", "")
+
+    policies = HealthInsurance.objects.select_related("patient", "provider")
+    if q:
+        policies = policies.filter(
+            Q(patient__first_name__icontains=q) | Q(patient__last_name__icontains=q)
+            | Q(policy_number__icontains=q) | Q(provider__name__icontains=q)
+        )
+    if status_filter:
+        policies = policies.filter(verification_status=status_filter)
+    policies = policies.order_by("-created_at")
+
+    if request.method == "POST":
+        policy_id = request.POST.get("policy_id")
+        action = request.POST.get("action")
+        policy = get_object_or_404(HealthInsurance, id=policy_id)
+        if action in ("verify", "unverify", "expire", "reject"):
+            policy.verification_status = {
+                "verify": "VERIFIED", "unverify": "UNVERIFIED",
+                "expire": "EXPIRED", "reject": "REJECTED",
+            }[action]
+            policy.save(update_fields=["verification_status"])
+            send_telegram(f"🏥 Policy {policy.policy_number} ({policy.patient.email}) marked {policy.get_verification_status_display()}")
+        return redirect("admin_insurance_policies")
+
+    page_num = request.GET.get("page", 1)
+    paginator = Paginator(policies, 20)
+    page_obj = paginator.get_page(page_num)
+
+    return render(request, "core/admin/insurance_policies.html", {
+        "active_tab": "admin_insurance_policies",
+        "page_obj": page_obj, "policies": page_obj, "query": q, "selected_status": status_filter,
+        "statuses": HealthInsurance.VerificationStatus.choices,
+    })
+
+
+# ──────────────────────────────────────────────
+#  INSURANCE CLAIMS  (list + status)
+# ──────────────────────────────────────────────
+
+@admin_required
+def admin_insurance_claim_list(request):
+    from core.models.insurance.models import InsuranceClaim
+
+    q = request.GET.get("q", "")
+    status_filter = request.GET.get("status", "")
+
+    claims = InsuranceClaim.objects.select_related("insurance__patient", "insurance__provider", "invoice")
+    if q:
+        claims = claims.filter(
+            Q(insurance__patient__first_name__icontains=q) | Q(insurance__patient__last_name__icontains=q)
+            | Q(invoice__invoice_number__icontains=q)
+        )
+    if status_filter:
+        claims = claims.filter(status=status_filter)
+    claims = claims.order_by("-submitted_at")
+
+    if request.method == "POST":
+        claim_id = request.POST.get("claim_id")
+        action = request.POST.get("action")
+        claim = get_object_or_404(InsuranceClaim, id=claim_id)
+        approved_amount = request.POST.get("approved_amount")
+        if action == "review" and claim.status == "SUBMITTED":
+            claim.status = "UNDER_REVIEW"
+            claim.save(update_fields=["status"])
+        elif action == "approve" and claim.status == "UNDER_REVIEW":
+            claim.status = "APPROVED"
+            if approved_amount:
+                claim.approved_amount = approved_amount
+            claim.resolved_at = timezone.now()
+            claim.save(update_fields=["status", "approved_amount", "resolved_at"])
+            send_telegram(f"🏥 Claim approved: {claim.insurance.patient.email} — E£{claim.approved_amount} on invoice {claim.invoice.invoice_number}")
+        elif action == "deny" and claim.status == "UNDER_REVIEW":
+            claim.status = "DENIED"
+            claim.resolved_at = timezone.now()
+            claim.save(update_fields=["status", "resolved_at"])
+        elif action == "paid" and claim.status == "APPROVED":
+            claim.status = "PAID"
+            claim.save(update_fields=["status"])
+        return redirect("admin_insurance_claims")
+
+    page_num = request.GET.get("page", 1)
+    paginator = Paginator(claims, 20)
+    page_obj = paginator.get_page(page_num)
+
+    return render(request, "core/admin/insurance_claims.html", {
+        "active_tab": "admin_insurance_claims",
+        "page_obj": page_obj, "claims": page_obj, "query": q, "selected_status": status_filter,
+        "statuses": InsuranceClaim.Status.choices,
     })
 
 

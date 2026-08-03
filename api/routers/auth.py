@@ -1,5 +1,7 @@
 from datetime import date, datetime
 
+import jwt
+from django.conf import settings
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 from django.contrib.auth import get_user_model
@@ -100,11 +102,12 @@ def register(body: RegisterBody):
         user.save()
         from core.models.accounts.models import UserPreference
         UserPreference.objects.get_or_create(user=user)
+        from api.deps import create_local_token
         send_telegram(f"🆕 New user registered (API - local): {body.email}")
         return AuthOut(
             user={"id": str(user.id), "email": user.email, "role": user.role,
                   "first_name": user.first_name, "last_name": user.last_name, "phone": user.phone},
-            session={"access_token": "", "refresh_token": ""},
+            session={"access_token": create_local_token(user), "refresh_token": create_local_token(user, days=90)},
         )
 
     raise HTTPException(status_code=400, detail="Registration failed")
@@ -112,6 +115,19 @@ def register(body: RegisterBody):
 
 @router.post("/refresh", response_model=AuthOut)
 def refresh(body: RefreshBody):
+    from api.deps import create_local_token
+
+    try:
+        payload = jwt.decode(body.refresh_token, settings.SECRET_KEY, algorithms=["HS256"])
+        user = User.objects.get(id=payload["sub"])
+        return AuthOut(
+            user={"id": str(user.id), "email": user.email, "role": user.role,
+                  "first_name": user.first_name, "last_name": user.last_name, "phone": user.phone},
+            session={"access_token": create_local_token(user), "refresh_token": create_local_token(user, days=90)},
+        )
+    except (jwt.InvalidTokenError, User.DoesNotExist, ValueError):
+        pass
+
     supabase = get_supabase()
     try:
         res = supabase.auth.refresh_session(body.refresh_token)
@@ -159,11 +175,12 @@ def login(body: LoginBody):
 
     user = User.objects.filter(email=body.email).first()
     if user and user.is_active and check_password(body.password, user.password):
+        from api.deps import create_local_token
         send_telegram(f"🔑 User logged in (API - local): {body.email}")
         return AuthOut(
             user={"id": str(user.id), "email": user.email, "role": user.role,
                   "first_name": user.first_name, "last_name": user.last_name, "phone": user.phone},
-            session={"access_token": "", "refresh_token": ""},
+            session={"access_token": create_local_token(user), "refresh_token": create_local_token(user, days=90)},
         )
 
     raise HTTPException(status_code=401, detail="Invalid credentials")

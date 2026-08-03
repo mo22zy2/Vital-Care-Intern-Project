@@ -9,6 +9,7 @@ from api.routers import (
     appointments,
     auth,
     billing,
+    chat,
     doctors,
     emergency_contacts,
     feedback,
@@ -16,10 +17,10 @@ from api.routers import (
     laboratory,
     medical_records,
     notifications,
+    payments,
     pharmacy,
     prescriptions,
     search,
-    telegram,
 )
 
 app = FastAPI(title="Hospital API", version="1.0.0")
@@ -47,7 +48,8 @@ app.include_router(emergency_contacts.router)
 app.include_router(accounts.router)
 app.include_router(admin.router)
 app.include_router(search.router)
-app.include_router(telegram.router)
+app.include_router(payments.router)
+app.include_router(chat.router)
 
 
 @app.get("/health")

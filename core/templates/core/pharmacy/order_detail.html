@@ -40,9 +40,9 @@
         {% for item in items %}
         <tr>
           <td>{{ item.medicine.name }} ({{ item.medicine.strength }})</td>
-          <td>${{ item.unit_price }}</td>
+          <td>E£{{ item.unit_price }}</td>
           <td>{{ item.quantity }}</td>
-          <td>${{ item.unit_price|floatformat:2 }}</td>
+          <td>E£{{ item.unit_price|floatformat:2 }}</td>
         </tr>
         {% empty %}
         <tr><td colspan="4">No items in this order.</td></tr>
@@ -51,7 +51,7 @@
     </table>
 
     <div style="text-align:right;margin-top:16px;font-size:1.1rem;font-weight:700;">
-      Total: ${{ total|floatformat:2 }}
+      Total: E£{{ total|floatformat:2 }}
     </div>
   </div>
 </div>

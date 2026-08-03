@@ -1,0 +1,60 @@
+{% extends "core/base.html" %}
+{% block title %}Add Insurance Policy{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Add Insurance Policy</h1>
+    <p class="page-subtitle">Register your health insurance policy</p>
+  </div>
+  <a href="{% url 'insurance_list' %}" class="btn btn-outline">← Back</a>
+</div>
+
+<div class="card" style="max-width:640px;">
+  <div class="card-body">
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label" for="provider_id">Provider <span style="color:var(--color-danger);">*</span></label>
+        <select class="form-select" id="provider_id" name="provider_id" required>
+          <option value="">— Select Provider —</option>
+          {% for p in providers %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="policy_number">Policy Number <span style="color:var(--color-danger);">*</span></label>
+        <input class="form-input" type="text" id="policy_number" name="policy_number" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="group_number">Group Number</label>
+        <input class="form-input" type="text" id="group_number" name="group_number">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="coverage_percentage">Coverage Percentage</label>
+        <input class="form-input" type="number" id="coverage_percentage" name="coverage_percentage" value="0" min="0" max="100" step="0.01">
+      </div>
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label" for="valid_from">Valid From <span style="color:var(--color-danger);">*</span></label>
+          <input class="form-input" type="date" id="valid_from" name="valid_from" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="valid_to">Valid To <span style="color:var(--color-danger);">*</span></label>
+          <input class="form-input" type="date" id="valid_to" name="valid_to" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="coverage_details">Coverage Details</label>
+        <textarea class="form-input" id="coverage_details" name="coverage_details" rows="3" placeholder="What does this policy cover?"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save Policy</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

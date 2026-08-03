@@ -65,8 +65,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      SizedBox(
-                        width: 200,
+                      Expanded(
                         child: TextField(
                           controller: _searchCtl,
                           decoration: const InputDecoration(

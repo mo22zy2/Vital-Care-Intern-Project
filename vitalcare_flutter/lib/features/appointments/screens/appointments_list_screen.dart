@@ -48,7 +48,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
               Text('Appointments', style: Theme.of(context).textTheme.displayMedium),
               const Spacer(),
               if (role == 'PATIENT')
-                AppButton.accent('+ Book Appointment', onPressed: () => context.push('/appointments/book')),
+                AppButton.accent('+ Book Appointment', expanded: false, onPressed: () => context.push('/appointments/book')),
             ],
           ),
         ),
@@ -64,8 +64,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      SizedBox(
-                        width: 200,
+                      Expanded(
                         child: TextField(
                           controller: _searchCtl,
                           decoration: const InputDecoration(
@@ -123,10 +122,14 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
                                 child: Row(
                                   children: [
                                     if (role != 'PATIENT')
-                                      Padding(
-                                        padding: const EdgeInsets.only(right: 12),
-                                        child: Text(a['patient_name']?.toString() ?? '',
-                                            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                                      Flexible(
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(right: 12),
+                                          child: Text(a['patient_name']?.toString() ?? '',
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                                        ),
                                       ),
                                     Expanded(
                                       child: Column(

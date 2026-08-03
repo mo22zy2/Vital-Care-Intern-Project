@@ -1,0 +1,131 @@
+{% extends "core/base.html" %}
+{% block title %}Invoice {{ invoice.invoice_number }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Invoice <span class="mono">{{ invoice.invoice_number }}</span></h1>
+    <p class="page-subtitle">{{ invoice.patient.get_full_name }} &middot; Issued {{ invoice.issue_date|date:"M d, Y" }} &middot; Due {{ invoice.due_date|date:"M d, Y" }}</p>
+  </div>
+  <div>
+    <a href="{% url 'invoice_list' %}" class="btn btn-outline">← Back to Invoices</a>
+  </div>
+</div>
+
+<div class="row" style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <strong>Line Items</strong>
+        <span class="badge {% if invoice.status == 'PAID' %}badge-success{% elif invoice.status == 'UNPAID' %}badge-warning{% elif invoice.status == 'OVERDUE' %}badge-danger{% elif invoice.status == 'PARTIALLY_PAID' %}badge-info{% else %}badge-neutral{% endif %}">{{ invoice.get_status_display }}</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        {% if invoice.items.all %}
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Type</th>
+              <th>Qty</th>
+              <th style="text-align:right;">Unit Price</th>
+              <th style="text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for i in invoice.items.all %}
+            <tr>
+              <td>{{ i.description }}</td>
+              <td>{{ i.get_item_type_display }}</td>
+              <td>{{ i.quantity }}</td>
+              <td style="text-align:right;">E£{{ i.unit_price }}</td>
+              <td style="text-align:right;font-weight:600;">E£{{ i.line_total }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding:24px;text-align:center;color:var(--color-text-muted);">No line items.</div>
+        {% endif %}
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;font-size:0.9rem;">
+          <div>Subtotal: <strong class="mono">E£{{ invoice.subtotal }}</strong></div>
+          <div>Tax: <strong class="mono">E£{{ invoice.tax_amount }}</strong></div>
+          <div>Discount: <strong class="mono">-E£{{ invoice.discount_amount }}</strong></div>
+          <div style="font-size:1.05rem;font-weight:700;">Total: <strong class="mono" style="font-family:var(--font-mono);">E£{{ invoice.total_amount }}</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><strong>Insurance Claims on this Invoice</strong></div>
+      <div class="card-body" style="padding:0;">
+        {% if claims %}
+        <table>
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Claimed</th>
+              <th>Approved</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in claims %}
+            <tr>
+              <td>{{ c.insurance.provider.name }}</td>
+              <td>E£{{ c.claim_amount }}</td>
+              <td>{% if c.approved_amount is not None %}E£{{ c.approved_amount }}{% else %}—{% endif %}</td>
+              <td><span class="badge badge-neutral">{{ c.get_status_display }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding:24px;text-align:center;color:var(--color-text-muted);">No insurance claims for this invoice.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><strong>Payment History</strong></div>
+      <div class="card-body" style="padding:0;">
+        {% if payments %}
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Method</th>
+              <th style="text-align:right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in payments %}
+            <tr>
+              <td>{{ p.paid_at|date:"M d, Y" }}</td>
+              <td>{{ p.get_method_display }}</td>
+              <td style="text-align:right;">E£{{ p.amount }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding:24px;text-align:center;color:var(--color-text-muted);">No payments recorded yet.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if invoice.appointment %}
+    <div class="card">
+      <div class="card-header"><strong>Related Appointment</strong></div>
+      <div class="card-body">
+        <div style="font-size:0.875rem;">
+          <div><strong>Dr. {{ invoice.appointment.doctor.user.get_full_name }}</strong></div>
+          <div style="color:var(--color-text-muted);">{{ invoice.appointment.appointment_date }} at {{ invoice.appointment.appointment_time }}</div>
+          <div style="color:var(--color-text-muted);">{{ invoice.appointment.get_reason_display }}</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
