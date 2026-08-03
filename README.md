@@ -14,34 +14,34 @@ A full-featured hospital management platform with **Django admin UI** for the we
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                    Flutter App                       │
-│              (mobile — consumes JSON API)             │
+│                    Flutter App 8082                 │
+│              (mobile — consumes JSON API)           │
 └────────────────────────┬────────────────────────────┘
                          │ Authorization: Bearer <token>
                          ▼
 ┌─────────────────────────────────────────────────────┐
-│               FastAPI (port 8081)                     │
-│  16 routers · 85+ endpoints · Pydantic schemas        │
-│  Supabase JWT validation · Django ORM integration     │
+│               FastAPI (port 8081)                   │
+│  16 routers · 85+ endpoints · Pydantic schemas      │
+│  Supabase JWT validation · Django ORM integration   │
 └────────────────────────┬────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────┐
-│              Django ORM (shared database)             │
-│  14 sub-apps · 30+ models · Custom migrations         │
+│              Django ORM (shared database)           │
+│  14 sub-apps · 30+ models · Custom migrations       │
 └────────────────────────┬────────────────────────────┘
                          │
               ┌──────────┴──────────┐
               ▼                     ▼
       ┌──────────────┐    ┌──────────────┐
-      │  PostgreSQL   │    │   SQLite     │
-      │  (Supabase)   │    │  (local dev) │
+      │  PostgreSQL  │    │   SQLite     │
+      │  (Supabase)  │    │  (local dev) │
       └──────────────┘    └──────────────┘
                          ▲
 ┌─────────────────────────────────────────────────────┐
-│            Django (port 8000)                         │
-│  VitalCare Web UI · Admin Dashboard · Template views  │
-│  Auth with Supabase + Django fallback                  │
+│            Django (port 8080)                       │
+│  VitalCare Web UI · Admin Dashboard · Template views│
+│  Auth with Supabase + Django fallback               │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -131,10 +131,14 @@ python scripts/seed_data.py
 # 7. Start servers (in two terminals)
 
 # Terminal 1 — Django Web UI (port 8000)
-python manage.py runserver
+python manage.py runserver 8080
 
 # Terminal 2 — FastAPI for Flutter (port 8081)
 uvicorn api.main:app --reload --port 8081
+
+# Terminal 3 — Flutter (port 8081)
+flutter run -d edge --web-port 8082   
+
 ```
 
 ### Default Credentials
