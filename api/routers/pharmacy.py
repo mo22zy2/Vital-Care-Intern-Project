@@ -1,4 +1,6 @@
 from decimal import Decimal
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -49,7 +51,7 @@ class OrderItemIn(BaseModel):
 
 
 class OrderCreate(BaseModel):
-    items: list[OrderItemIn]
+    items: list[OrderItemIn] = Field(min_length=1, description="At least one item is required")
 
 
 class OrderOut(BaseModel):
@@ -71,7 +73,11 @@ def create_order(body: OrderCreate, user=Depends(get_current_user)):
         items_out = []
         total = Decimal("0.00")
         for item in body.items:
-            medicine = Medicine.objects.select_for_update().filter(id=item.medicine_id, is_active=True).first()
+            try:
+                medicine_id = uuid.UUID(item.medicine_id)
+            except (ValueError, AttributeError):
+                raise HTTPException(status_code=404, detail=f"Medicine {item.medicine_id} not found")
+            medicine = Medicine.objects.select_for_update().filter(id=medicine_id, is_active=True).first()
             if not medicine:
                 raise HTTPException(status_code=404, detail=f"Medicine {item.medicine_id} not found")
             if medicine.stock_quantity < item.quantity:
@@ -168,6 +174,15 @@ class OrderStatusUpdate(BaseModel):
     status: str
 
 
+ALLOWED_STATUS_TRANSITIONS = {
+    "PENDING": ("PROCESSING", "CANCELLED"),
+    "PROCESSING": ("READY_FOR_PICKUP", "CANCELLED"),
+    "READY_FOR_PICKUP": ("DELIVERED", "CANCELLED"),
+    "DELIVERED": (),
+    "CANCELLED": (),
+}
+
+
 @router.patch("/orders/{order_id}/status")
 def update_order_status(order_id: str, body: OrderStatusUpdate, user=Depends(get_current_user)):
     if user.role != "PHARMACIST" and user.role not in ("ADMIN", "STAFF"):
@@ -183,8 +198,16 @@ def update_order_status(order_id: str, body: OrderStatusUpdate, user=Depends(get
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
+    if body.status not in ALLOWED_STATUS_TRANSITIONS.get(order.status, ()):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot change order from {order.status} to {body.status}",
+        )
+
     order.status = body.status
     if body.status in ("DELIVERED", "CANCELLED"):
         order.fulfilled_at = timezone.now()
+    else:
+        order.fulfilled_at = None
     order.save()
     return {"message": f"Order status changed to {order.get_status_display()}"}

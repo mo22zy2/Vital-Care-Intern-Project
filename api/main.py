@@ -1,7 +1,10 @@
 import api.config
 
-from fastapi import FastAPI
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.http import Http404
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from api.routers import (
     accounts,
@@ -28,10 +31,25 @@ app = FastAPI(title="Hospital API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Http404)
+async def django_http404_handler(request: Request, exc: Http404):
+    return JSONResponse(status_code=404, content={"detail": "Not found"})
+
+
+@app.exception_handler(DjangoValidationError)
+async def django_validation_error_handler(request: Request, exc: DjangoValidationError):
+    return JSONResponse(status_code=422, content={"detail": "; ".join(exc.messages) or "Invalid input"})
+
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    return JSONResponse(status_code=422, content={"detail": str(exc) or "Invalid value"})
 
 app.include_router(auth.router)
 app.include_router(appointments.router)

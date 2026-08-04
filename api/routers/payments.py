@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from django.utils import timezone as dj_timezone
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from api.deps import get_current_user
 from core.models.billing.models import Invoice
@@ -29,7 +29,7 @@ class PaymentOut(BaseModel):
 class PaymentCreate(BaseModel):
     invoice_id: str
     method: str
-    amount: Decimal
+    amount: Decimal = Field(gt=0)
 
 
 @router.get("/payments", response_model=list[PaymentOut])
@@ -81,6 +81,11 @@ def pay_invoice(invoice_id: str, body: PaymentCreate, user=Depends(get_current_u
     if invoice.status in ("PAID", "CANCELLED"):
         raise HTTPException(status_code=400, detail=f"Invoice already {invoice.status}")
 
+    method = body.method.upper()
+    valid_methods = [m[0] for m in Payment.Method.choices]
+    if method not in valid_methods:
+        raise HTTPException(status_code=400, detail=f"Invalid payment method. Valid: {', '.join(valid_methods)}")
+
     paid_total = D(0)
     for p in Payment.objects.filter(invoice=invoice, status="SUCCESS"):
         paid_total += p.amount
@@ -91,7 +96,7 @@ def pay_invoice(invoice_id: str, body: PaymentCreate, user=Depends(get_current_u
     payment = Payment.objects.create(
         invoice=invoice,
         patient=user,
-        method=body.method.upper(),
+        method=method,
         status="SUCCESS",
         amount=body.amount,
         transaction_reference=f"VC-{datetime.now(timezone.utc):%Y%m%d%H%M%S}-{invoice.invoice_number}",

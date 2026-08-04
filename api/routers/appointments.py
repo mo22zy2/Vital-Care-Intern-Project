@@ -2,7 +2,7 @@ from datetime import date, datetime, time
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, field_validator, model_validator
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.db import transaction, IntegrityError
 
 from api.deps import get_current_user
 from api.validators import not_in_past, future_slot, phone
@@ -110,6 +110,9 @@ def get_appointment(appointment_id: str, user=Depends(get_current_user)):
 
 @router.post("", response_model=AppointmentOut, status_code=201)
 def create_appointment(body: AppointmentCreate, user=Depends(get_current_user)):
+    if user.role != "PATIENT":
+        raise HTTPException(status_code=403, detail="Only patients can book appointments")
+
     try:
         doctor = Doctor.objects.get(id=body.doctor_id, is_active=True)
     except Doctor.DoesNotExist:
@@ -130,20 +133,28 @@ def create_appointment(body: AppointmentCreate, user=Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Doctor not available at this time")
 
     with transaction.atomic():
+        cancelled = Appointment.objects.filter(
+            doctor=doctor, appointment_date=body.appointment_date,
+            appointment_time=body.appointment_time, status="CANCELLED",
+        )
+        cancelled.delete()
         if Appointment.objects.filter(
             doctor=doctor, appointment_date=body.appointment_date,
             appointment_time=body.appointment_time,
-        ).exclude(status="CANCELLED").exists():
+        ).exists():
             raise HTTPException(status_code=409, detail="Time slot already booked")
-        a = Appointment.objects.create(
-            patient=user,
-            doctor=doctor,
-            appointment_date=body.appointment_date,
-            appointment_time=body.appointment_time,
-            reason=body.reason,
-            contact_phone=body.contact_phone,
-            notes=body.notes,
-        )
+        try:
+            a = Appointment.objects.create(
+                patient=user,
+                doctor=doctor,
+                appointment_date=body.appointment_date,
+                appointment_time=body.appointment_time,
+                reason=body.reason,
+                contact_phone=body.contact_phone,
+                notes=body.notes,
+            )
+        except IntegrityError:
+            raise HTTPException(status_code=409, detail="Time slot already booked")
     notify_appointment_booked(a)
     return AppointmentOut(
         id=str(a.id),
@@ -185,6 +196,7 @@ def cancel_appointment(appointment_id: str, body: CancelBody, user=Depends(get_c
 
 class StatusAction(BaseModel):
     action: str
+    reason: str = ""
 
 
 STATUS_MAP = {
@@ -193,6 +205,14 @@ STATUS_MAP = {
     "complete": "COMPLETED",
     "no_show": "NO_SHOW",
     "cancel": "CANCELLED",
+}
+
+ACTION_MESSAGE = {
+    "accept": "Appointment accepted",
+    "confirm": "Appointment confirmed",
+    "complete": "Appointment completed",
+    "no_show": "Appointment marked as no-show",
+    "cancel": "Appointment cancelled",
 }
 
 
@@ -209,10 +229,12 @@ def update_appointment_status(appointment_id: str, body: StatusAction, user=Depe
     new_status = STATUS_MAP.get(body.action)
     if not new_status:
         raise HTTPException(status_code=400, detail=f"Invalid action: {body.action}")
-    if a.status in ("COMPLETED", "CANCELLED") and new_status in ("CANCELLED",):
+    if a.status in ("COMPLETED", "CANCELLED"):
         raise HTTPException(status_code=400, detail=f"Cannot change {a.status} appointment")
 
     a.status = new_status
+    if new_status == "CANCELLED":
+        a.cancellation_reason = body.reason or "Cancelled by doctor"
     a.save()
     notify_appointment_status_changed(a)
-    return {"message": f"Appointment {body.action}ed", "status": a.status}
+    return {"message": ACTION_MESSAGE.get(body.action, f"Appointment updated to {a.status}"), "status": a.status}

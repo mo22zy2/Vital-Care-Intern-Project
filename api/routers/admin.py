@@ -3,7 +3,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from django.contrib.auth import get_user_model
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Avg
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
@@ -107,9 +107,14 @@ def admin_dashboard(admin=Depends(require_admin)):
 def admin_users(
     q: str = "",
     role: str = "",
+    page: int = 1,
+    limit: int = 50,
     admin=Depends(require_admin),
 ):
     from django.db.models import Q
+
+    if page < 1 or limit < 1:
+        raise HTTPException(status_code=400, detail="page and limit must be >= 1")
 
     users = User.objects.all().order_by("-date_joined")
     if q:
@@ -119,6 +124,9 @@ def admin_users(
         )
     if role:
         users = users.filter(role=role)
+
+    offset = (page - 1) * limit
+    users = users[offset:offset + limit]
 
     return [
         UserOut(
@@ -453,7 +461,10 @@ def admin_feedback(q: str = "", rating: str = "", admin=Depends(require_admin)):
             | Q(comment__icontains=q)
         )
     if rating:
-        qs = qs.filter(rating=int(rating))
+        try:
+            qs = qs.filter(rating=int(rating))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="rating must be an integer")
 
     return [
         FeedbackOut(
@@ -518,7 +529,7 @@ def admin_reports(admin=Depends(require_admin)):
     year_start = now.replace(month=1, day=1)
 
     total_revenue = Invoice.objects.filter(status="PAID").aggregate(s=Sum("total_amount"))["s"] or 0
-    avg_rating = Feedback.objects.aggregate(avg=Sum("rating") / Count("id"))["avg"] or 0
+    avg_rating = Feedback.objects.aggregate(avg=Avg("rating"))["avg"] or 0
 
     monthly_appts = Appointment.objects.filter(created_at__gte=year_start).annotate(
         month=TruncMonth("created_at")
@@ -688,7 +699,6 @@ def admin_update_invoice_status(invoice_id: str, body: StatusUpdate, admin=Depen
 class LabTestOut(BaseModel):
     id: str
     name: str
-    category: str
     price: str
     is_active: bool
 
@@ -698,14 +708,12 @@ class LabTestOut(BaseModel):
 
 class LabTestCreate(BaseModel):
     name: str
-    category: str = ""
     description: str = ""
     price: float = Field(default=0, ge=0)
 
 
 class LabTestUpdate(BaseModel):
     name: str | None = None
-    category: str | None = None
     description: str | None = None
     price: float | None = Field(default=None, ge=0)
     is_active: bool | None = None
@@ -718,8 +726,8 @@ def admin_lab_tests(q: str = "", admin=Depends(require_admin)):
 
     qs = LabTest.objects.all().order_by("name")
     if q:
-        qs = qs.filter(Q(name__icontains=q) | Q(category__icontains=q))
-    return [LabTestOut(id=str(t.id), name=t.name, category=t.category,
+        qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    return [LabTestOut(id=str(t.id), name=t.name,
                        price=str(t.price), is_active=t.is_active) for t in qs]
 
 
@@ -727,7 +735,7 @@ def admin_lab_tests(q: str = "", admin=Depends(require_admin)):
 def admin_create_lab_test(body: LabTestCreate, admin=Depends(require_admin)):
     from core.models.laboratory.models import LabTest
 
-    t = LabTest.objects.create(name=body.name, category=body.category,
+    t = LabTest.objects.create(name=body.name,
                                description=body.description, price=body.price)
     return {"message": "Lab test created", "id": str(t.id)}
 

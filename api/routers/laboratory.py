@@ -1,5 +1,8 @@
 from decimal import Decimal
 from datetime import date, time, datetime
+
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator, model_validator
 
@@ -152,7 +155,12 @@ def labtech_dashboard(user=Depends(get_current_user)):
 ACTION_STATUS_MAP = {
     "collect_sample": "SAMPLE_COLLECTED",
     "start_test": "IN_PROGRESS",
-    "complete": "COMPLETED",
+}
+
+TRANSITION_RULES = {
+    "BOOKED": {"collect_sample"},
+    "SAMPLE_COLLECTED": {"start_test"},
+    "IN_PROGRESS": set(),
 }
 
 
@@ -161,16 +169,21 @@ def update_booking_status(booking_id: str, body: BookingStatusUpdate, user=Depen
     if user.role != "LAB_TECH" and user.role not in ("ADMIN", "STAFF"):
         raise HTTPException(status_code=403, detail="Lab tech access required")
 
-    booking = LabTestBooking.objects.filter(id=booking_id).first()
-    if not booking:
+    try:
+        booking = LabTestBooking.objects.get(id=booking_id)
+    except (LabTestBooking.DoesNotExist, DjangoValidationError):
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    new_status = ACTION_STATUS_MAP.get(body.action)
-    if not new_status:
-        raise HTTPException(status_code=400, detail=f"Invalid action: {body.action}")
+    allowed_actions = TRANSITION_RULES.get(booking.status, set())
+    if body.action not in allowed_actions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot apply '{body.action}' to a {booking.status} booking",
+        )
 
+    new_status = ACTION_STATUS_MAP[body.action]
     booking.status = new_status
-    booking.save()
+    booking.save(update_fields=["status"])
     return {"message": f"Booking status changed to {new_status}"}
 
 
@@ -184,20 +197,24 @@ def release_result(booking_id: str, body: ResultRelease, user=Depends(get_curren
     if user.role != "LAB_TECH" and user.role not in ("ADMIN", "STAFF"):
         raise HTTPException(status_code=403, detail="Lab tech access required")
 
-    booking = LabTestBooking.objects.filter(id=booking_id).first()
-    if not booking:
+    try:
+        booking = LabTestBooking.objects.select_for_update().get(id=booking_id)
+    except (LabTestBooking.DoesNotExist, DjangoValidationError):
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    booking.status = "RESULT_READY"
-    booking.save()
+    if booking.status not in ("SAMPLE_COLLECTED", "IN_PROGRESS"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot release a result for a {booking.status} booking",
+        )
 
-    result = LabTestResult.objects.create(
-        booking=booking,
-        patient=booking.patient,
-        lab_test=booking.lab_test,
-        result_summary=body.result_summary,
-        result_details=body.result_details,
-        released_by=user,
-    )
-    notify_test_result_available(result)
+    with transaction.atomic():
+        result, _ = LabTestResult.objects.update_or_create(
+            booking=booking,
+            defaults={"result_summary": body.result_summary},
+        )
+        booking.status = "RESULT_READY"
+        booking.save(update_fields=["status"])
+
+    notify_test_result_available(booking)
     return {"message": "Result released", "id": str(result.id)}
