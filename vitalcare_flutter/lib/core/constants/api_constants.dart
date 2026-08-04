@@ -3,9 +3,18 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 class ApiConstants {
   ApiConstants._();
 
-  static String get baseUrl => kIsWeb ? 'http://localhost:8081' : 'http://10.0.2.2:8081';
+  static const String _definedApiBase = String.fromEnvironment('API_BASE_URL');
+  static const String _definedRagBase = String.fromEnvironment('RAG_BASE_URL');
 
-  static String get ragBaseUrl => kIsWeb ? 'http://localhost:9000' : 'http://10.0.2.2:9000';
+  static String get baseUrl {
+    if (_definedApiBase.isNotEmpty) return _definedApiBase;
+    return kIsWeb ? 'http://localhost:8081' : 'http://10.0.2.2:8081';
+  }
+
+  static String get ragBaseUrl {
+    if (_definedRagBase.isNotEmpty) return _definedRagBase;
+    return kIsWeb ? 'http://localhost:9000' : 'http://10.0.2.2:9000';
+  }
 
   static const int ragProjectId = 21;
   static String get ragAnswer => '/api/v1/nlp/index/answer/$ragProjectId';
