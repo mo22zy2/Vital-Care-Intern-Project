@@ -48,7 +48,7 @@ final GoRouter router = GoRouter(
     if (loggedIn && (loginRoute || registerRoute)) return '/dashboard';
     final role = ApiClient.userRole;
     if (loggedIn) {
-      final doctorOnly = location.startsWith('/doctor');
+      final doctorOnly = location.startsWith('/doctor/');
       final pharmacistOnly = location.startsWith('/pharmacist');
       final labtechOnly = location.startsWith('/labtech');
       if (doctorOnly && role != 'DOCTOR') return '/dashboard';
