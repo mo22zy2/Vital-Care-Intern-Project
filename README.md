@@ -38,7 +38,7 @@ A full-featured hospital management platform with a **Django web UI** for staff/
 - **Role-based access** — Patient, Doctor, Pharmacist, Lab Tech, Admin/Staff each get dedicated dashboards and permissions.
 - **Supabase Auth** — JWT-based authentication with a local Django fallback for offline/dev use.
 - **Smart workflows** — Appointment slots that can't be double-booked (and cancelled slots can be re-booked), pharmacy order status transitions, lab sample → result pipelines.
-- **Push-style notifications** — In-app notifications plus optional per-user **Telegram** delivery.
+- **Push-style notifications** — In-app notifications plus **Telegram** alerts to a configured chat.
 - **Interactive knowledge graph** — a browsable visualization of the whole codebase ships in the repo (see [Knowledge Graph](#knowledge-graph)).
 
 ---
@@ -106,7 +106,7 @@ A full-featured hospital management platform with a **Django web UI** for staff/
 - **Billing & Insurance** — Invoices, payments (cash/card/insurance), insurance claims
 - **Medical Records** — Patient history, diagnoses, treatment plans, test results
 - **Prescriptions** — Create, refill requests, fulfillment tracking
-- **Notifications** — In-app alerts on key events + per-user Telegram delivery via a bot link token (`/telegram/link` → user presses `t.me/<bot>?start=<token>` → `/telegram/sync` binds their chat)
+- **Notifications** — In-app alerts on key events (appointments, orders, results, invoices), plus **Telegram** alerts to the configured admin chat (`core/telegram.py`)
 - **Feedback** — Rate doctors, anonymous option, Telegram notification
 - **Emergency Contacts** — CRUD per patient
 - **Global Search** — Search doctors, medicines, lab tests, users, invoices
@@ -218,7 +218,7 @@ hospital_project/
 │       ├── feedback.py         # Submit + list
 │       ├── insurance.py        # Providers, policies, claims
 │       ├── emergency_contacts.py # CRUD
-│       ├── telegram.py         # Per-user Telegram linking (link/sync)
+│       ├── chat.py             # RAG chat (POST /chat/ask)
 │       ├── admin.py            # 25 admin endpoints
 │       └── search.py           # Global search
 ├── core/                       # Django app
@@ -234,7 +234,7 @@ hospital_project/
 │   ├── templates/core/         # HTML templates (50+ files)
 │   ├── static/core/            # CSS, JS assets
 │   └── models/                 # 14 sub-apps
-│       ├── accounts/           # User, UserPreference, PasswordResetOTP, TelegramLink
+│       ├── accounts/           # User, UserPreference, PasswordResetOTP
 │       │   └── tests.py        # API regression test suite
 │       ├── appointments/       # Appointment
 │       ├── billing/            # Invoice, InvoiceItem
@@ -333,15 +333,11 @@ final headers = {
 | Lab Bookings | `POST /laboratory/bookings` |
 | Notifications | `GET /notifications` |
 | Feedback | `POST /feedback` |
+| RAG Chat | `POST /chat/ask` |
 
-### Telegram Notifications
+### Telegram Alerts
 
-Every in-app notification is also delivered to the user's Telegram chat once linked:
-
-1. `POST /telegram/link` → returns `{token, bot_username, link, linked}`
-2. The user opens `https://t.me/<bot_username>?start=<token>` and presses **Start**
-3. `POST /telegram/sync` → polls the bot's `getUpdates` and binds `telegram_chat_id` to the account
-4. From then on `core/notify.py` sends a per-chat copy of every notification
+Telegram notifications are **server-side**: key events (`core/notify.py`) create in-app notifications, and `core/telegram.py` forwards alerts (e.g., new registrations, logins, bookings, feedback) to the chat configured via `TELEGRAM_CHAT_ID`. No client-side setup is required — the Flutter app reads notifications from `GET /notifications`.
 
 ---
 
