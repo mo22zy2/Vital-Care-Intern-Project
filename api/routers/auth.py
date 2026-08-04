@@ -3,7 +3,7 @@ from datetime import date, datetime
 import jwt
 from django.conf import settings
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from django.contrib.auth import get_user_model
 from core.supabase_client import get_supabase
 from core.telegram import send_telegram
@@ -15,7 +15,7 @@ User = get_user_model()
 
 
 class RegisterBody(BaseModel):
-    email: str
+    email: EmailStr
     password: str = Field(min_length=8)
     first_name: str = ""
     last_name: str = ""
@@ -156,11 +156,11 @@ def refresh(body: RefreshBody):
 def login(body: LoginBody):
     from django.contrib.auth.hashers import check_password
 
+    supabase = get_supabase()
     try:
-        supabase = get_supabase()
         res = supabase.auth.sign_in_with_password({"email": body.email, "password": body.password})
     except AuthApiError:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        res = None
     if res and res.user:
         try:
             user = User.objects.get(supabase_uid=res.user.id)
@@ -183,4 +183,4 @@ def login(body: LoginBody):
             session={"access_token": create_local_token(user), "refresh_token": create_local_token(user, days=90)},
         )
 
-    raise HTTPException(status_code=401, detail="Invalid credentials")
+    raise HTTPException(status_code=401, detail="Invalid email or password")

@@ -1,9 +1,15 @@
 from datetime import datetime, timedelta, date
+import logging
 import random
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, Field, field_validator
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from gotrue.errors import AuthApiError
+from supabase import create_client
+
+logger = logging.getLogger(__name__)
 
 from api.deps import get_current_user
 from api.validators import birthday
@@ -149,6 +155,18 @@ class PasswordChange(BaseModel):
 
 @router.post("/me/password")
 def change_password(body: PasswordChange, user=Depends(get_current_user)):
+    if user.supabase_uid:
+        try:
+            client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+            client.auth.sign_in_with_password({"email": user.email, "password": body.current_password})
+            client.auth.update_user({"password": body.new_password})
+        except AuthApiError:
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+        except Exception:
+            logger.exception("Supabase password change failed for %s", user.email)
+            raise HTTPException(status_code=500, detail="Password change failed. Please try again.")
+        return {"message": "Password changed successfully"}
+
     if not user.check_password(body.current_password):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     user.set_password(body.new_password)
@@ -253,7 +271,15 @@ class OTPVerify(BaseModel):
 def request_otp(body: OTPRequest):
     user = User.objects.filter(email=body.email).first()
     if not user:
-        return {"message": "If the email exists, an OTP has been sent"}
+        return {"message": "If the email exists, a reset link has been sent"}
+
+    try:
+        client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+        client.auth.reset_password_for_email(user.email)
+        return {"message": "If the email exists, a reset link has been sent"}
+    except Exception:
+        logger.exception("Supabase password reset email failed for %s; falling back to local OTP", body.email)
+
     code = f"{random.randint(100000, 999999)}"
     PasswordResetOTP.objects.create(
         user=user,
@@ -261,7 +287,7 @@ def request_otp(body: OTPRequest):
         delivery_method="EMAIL",
         expires_at=timezone.now() + timedelta(minutes=15),
     )
-    return {"message": "If the email exists, an OTP has been sent"}
+    return {"message": "If the email exists, a reset link has been sent"}
 
 
 @router.post("/verify-otp")

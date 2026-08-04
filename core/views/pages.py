@@ -11,6 +11,7 @@ from django.db.models import Count, Q, Sum
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
@@ -19,6 +20,16 @@ from ..telegram import send_telegram
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+
+def _safe_next(request, default="/"):
+    """Return a safe `next` URL, rejecting open-redirect targets."""
+    next_url = request.GET.get("next", "")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return next_url
+    return default
 
 
 def role_required(*roles):
@@ -101,8 +112,7 @@ def login_page(request):
                         user.backend = "django.contrib.auth.backends.ModelBackend"
                         login(request, user)
                         send_telegram(f"🔑 User logged in: {user.email}")
-                        next_url = request.GET.get("next", "/")
-                        return redirect(next_url)
+                        return redirect(_safe_next(request))
                 else:
                     error = "Invalid email or password."
             except Exception as e:
@@ -111,8 +121,7 @@ def login_page(request):
                     user.backend = "django.contrib.auth.backends.ModelBackend"
                     login(request, user)
                     send_telegram(f"🔑 User logged in (local): {user.email}")
-                    next_url = request.GET.get("next", "/")
-                    return redirect(next_url)
+                    return redirect(_safe_next(request))
                 error = "Login failed. Please check your credentials."
 
     return render(request, "core/auth/login.html", {"error": error})
@@ -124,39 +133,42 @@ def login_page(request):
 
 @require_http_methods(["GET", "POST"])
 def forgot_password(request):
-    from core.models.accounts.models import PasswordResetOTP
-
     if request.user.is_authenticated:
         return redirect("dashboard")
 
     error = None
     success = None
-    dev_code = None
     email = ""
 
     if request.method == "POST":
         email = request.POST.get("email", "").strip()
         user = User.objects.filter(email=email).first()
         if user:
-            from datetime import timedelta
-            import random
-            code = f"{random.randint(100000, 999999)}"
-            PasswordResetOTP.objects.create(
-                user=user,
-                code=code,
-                delivery_method="EMAIL",
-                expires_at=timezone.now() + timedelta(minutes=15),
-            )
-            send_telegram(f"🔑 Password reset OTP requested for {email}")
-            success = "If that email exists, a reset code has been generated."
-            dev_code = code
+            try:
+                supabase = get_supabase()
+                supabase.auth.reset_password_for_email(user.email)
+                send_telegram(f"🔑 Password reset link requested for {email}")
+                success = "If that email exists, a password reset link has been sent to your email."
+            except Exception:
+                logger.exception("Supabase password reset email failed for %s", email)
+                from datetime import timedelta
+                import random
+                from core.models.accounts.models import PasswordResetOTP
+                code = f"{random.randint(100000, 999999)}"
+                PasswordResetOTP.objects.create(
+                    user=user,
+                    code=code,
+                    delivery_method="EMAIL",
+                    expires_at=timezone.now() + timedelta(minutes=15),
+                )
+                send_telegram(f"🔑 Password reset OTP requested for {email}")
+                success = "If that email exists, a reset link has been generated. Check your inbox."
         else:
-            success = "If that email exists, a reset code has been generated."
+            success = "If that email exists, a password reset link has been sent to your email."
 
     return render(request, "core/auth/forgot_password.html", {
         "error": error,
         "success": success,
-        "dev_code": dev_code,
         "email": email,
     })
 
