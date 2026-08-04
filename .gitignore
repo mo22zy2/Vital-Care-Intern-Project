@@ -27,6 +27,10 @@ AGENTS.md
 .env.local
 .env.production
 
+# Graphify output (keep the interactive knowledge-graph HTML only)
+graphify-out/*
+!graphify-out/graph.html
+
 # IDE
 .vscode/
 .idea/
