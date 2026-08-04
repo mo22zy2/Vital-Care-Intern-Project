@@ -8,15 +8,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'core/css/style.css' %}?v=20260803">
   <style>
-    .auth-container { max-width: 640px; }
-    .auth-card { max-width: 640px; width:100%; padding: 28px; }
-    .form-section { margin-bottom: 18px; }
-    .register-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; }
+    .auth-container { max-width: 1100px; }
+    .auth-card { max-width: 1100px; width:100%; }
+    @media (min-width: 1300px) { .auth-container, .auth-card { max-width: 75vw; } }
+    .form-section { margin-bottom: 20px; }
+    .register-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }
     .form-section-title {
       font-family: 'Inter Tight', sans-serif;
-      font-size: 0.75rem;
+      font-size: 0.8125rem;
       font-weight: 600;
       color: var(--color-primary);
       text-transform: uppercase;
@@ -31,7 +32,8 @@
       margin-top: 4px;
     }
     .is-invalid { border-color: var(--color-danger) !important; }
-    @media (max-width: 560px) { .register-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) { .register-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .register-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body class="auth-page">
