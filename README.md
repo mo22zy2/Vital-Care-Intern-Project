@@ -140,7 +140,7 @@ A full-featured hospital management platform with a **Django web UI** for staff/
 
 ```powershell
 # 1. Clone and enter the project
-git clone https://github.com/mo22zy2/Vital-Care-Intern-project.git
+git clone https://github.com/mo22zy2/Vital-Care-Intern-Project.git
 cd hospital_project
 
 # 2. Create conda environment
